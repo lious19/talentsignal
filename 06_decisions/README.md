@@ -41,6 +41,7 @@ The observation that should make us revisit it.
 
 | # | Question | Story | Blocking? |
 |---|---|---|---|
-| — | JWT lifetime — 15 min + refresh, or 1 hr no refresh? | S-02 | soft |
 | — | Confidence score: what factors, what weights? | S-03 | **hard — ask Ali** |
 | — | TypeScript or JavaScript? (DoD says "tsc clean") | all | **hard — ask Ali** |
+| — | Recruiter self-service account creation before S-14? (see 003) | S-02 | soft |
+| — | Is REQ-017's p95 exempt for auth endpoints? (see 006) | S-02 | soft |

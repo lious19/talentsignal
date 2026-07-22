@@ -25,6 +25,13 @@ services:
       PORT: 4000
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      # No fallback, on purpose: getJwtSecret() fails the container fast at
+      # boot if this isn't set to a real 32+ char value in your own .env.
+      JWT_SECRET: ${JWT_SECRET}
+      # Optional. Both must be set to create the one bootstrap admin; leave
+      # unset (the default) and no admin account is created.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
     ports:
       - "${BACKEND_PORT:-4000}:4000"
     depends_on:

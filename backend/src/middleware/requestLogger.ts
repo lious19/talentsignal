@@ -2,12 +2,6 @@ import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { logger } from "../logger";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    correlationId: string;
-  }
-}
-
 export function requestLogger(
   req: Request,
   res: Response,

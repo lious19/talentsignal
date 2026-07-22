@@ -8,6 +8,24 @@ export const logger = pino(
   {
     level: process.env.LOG_LEVEL ?? "info",
     timestamp: pino.stdTimeFunctions.isoTime,
+    // Belt-and-suspenders: no route today logs req.body or a raw user row,
+    // but this is the layer that survives someone adding one later without
+    // thinking about auth. Matches any field named password/passwordHash/
+    // password_hash at any nesting depth.
+    redact: {
+      paths: [
+        "password",
+        "passwordHash",
+        "password_hash",
+        "*.password",
+        "*.passwordHash",
+        "*.password_hash",
+        "*.*.password",
+        "*.*.passwordHash",
+        "*.*.password_hash",
+      ],
+      censor: "[Redacted]",
+    },
   },
   process.stdout,
 );
