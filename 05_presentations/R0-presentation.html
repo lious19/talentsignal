@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TalentSignal R0 — Megan Dimiyo-Mbenoun</title>
+<style>
+  :root{
+    --ink:#111418; --muted:#5b6672; --line:#dde3ea; --bg:#ffffff;
+    --accent:#0b5fff; --warn:#b8410e; --good:#0a7a4a; --wash:#f5f8fc;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:#e9edf2; overflow:hidden;
+  }
+  #deck{position:relative; width:100vw; height:100vh;}
+  .slide{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    padding:5.5vh 7vw 9vh; background:var(--bg);
+  }
+  .slide.active{display:flex;}
+  h1{font-size:clamp(32px,5.2vw,72px); line-height:1.05; letter-spacing:-.02em; font-weight:800;}
+  h2{font-size:clamp(24px,3.4vw,46px); line-height:1.12; letter-spacing:-.015em; font-weight:750; margin-bottom:.5em;}
+  h3{font-size:clamp(17px,1.7vw,25px); font-weight:700; margin-bottom:.35em;}
+  p,li{font-size:clamp(15px,1.55vw,23px); line-height:1.5; color:var(--ink);}
+  .lede{font-size:clamp(18px,2vw,30px); color:var(--muted); line-height:1.4;}
+  .kicker{
+    font-size:clamp(11px,.95vw,14px); font-weight:800; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin-bottom:1.2em;
+  }
+  ul{list-style:none;}
+  li{margin-bottom:.6em; padding-left:1.15em; position:relative;}
+  li::before{content:"—"; position:absolute; left:0; color:var(--muted);}
+  .big{font-size:clamp(30px,4.2vw,60px); font-weight:800; line-height:1.15; letter-spacing:-.02em;}
+  .quote{
+    font-size:clamp(20px,2.7vw,40px); line-height:1.3; font-weight:650;
+    border-left:5px solid var(--accent); padding-left:.7em; letter-spacing:-.01em;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:2.2em; margin-top:.4em;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:1.6em; margin-top:.4em;}
+  .card{background:var(--wash); border:1px solid var(--line); border-radius:12px; padding:1.1em 1.2em;}
+  .card h3{color:var(--accent);}
+  .tag{
+    display:inline-block; font-size:clamp(10px,.85vw,13px); font-weight:800;
+    letter-spacing:.1em; text-transform:uppercase; padding:.3em .7em;
+    border-radius:999px; background:var(--wash); color:var(--muted); border:1px solid var(--line);
+  }
+  .tag.warn{background:#fdf0e9; color:var(--warn); border-color:#f3d5c6;}
+  .tag.good{background:#e9f7f0; color:var(--good); border-color:#c5e6d6;}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.88em;
+       background:var(--wash); border:1px solid var(--line); border-radius:5px; padding:.08em .38em;}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  table{border-collapse:collapse; width:100%; margin-top:.5em;}
+  th,td{text-align:left; padding:.5em .7em; border-bottom:1px solid var(--line);
+        font-size:clamp(13px,1.35vw,20px);}
+  th{font-weight:750; color:var(--muted); font-size:clamp(11px,1.05vw,15px);
+     text-transform:uppercase; letter-spacing:.07em;}
+  .flow{display:flex; align-items:center; gap:.7em; flex-wrap:wrap; margin:.8em 0;}
+  .node{background:var(--wash); border:2px solid var(--line); border-radius:10px;
+        padding:.7em 1em; font-weight:700; font-size:clamp(13px,1.35vw,20px);}
+  .node.hi{border-color:var(--accent); color:var(--accent);}
+  .arrow{color:var(--muted); font-size:1.4em;}
+  .center{justify-content:center; align-items:center; text-align:center;}
+  .spacer{flex:1;}
+  footer{
+    position:absolute; left:7vw; right:7vw; bottom:3.2vh;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:clamp(10px,.9vw,13px); color:var(--muted); border-top:1px solid var(--line);
+    padding-top:.7em;
+  }
+  #bar{position:absolute; top:0; left:0; height:3px; background:var(--accent); transition:width .18s;}
+  #notes{
+    position:fixed; left:0; right:0; bottom:0; max-height:38vh; overflow:auto;
+    background:#12161b; color:#e6edf5; padding:1.1em 7vw; display:none;
+    font-size:15px; line-height:1.55; border-top:3px solid var(--accent);
+  }
+  #notes.show{display:block;}
+  #notes b{color:#7fb0ff;}
+  #help{
+    position:fixed; right:14px; bottom:12px; font-size:11px; color:#8b96a3;
+    background:rgba(255,255,255,.9); padding:.4em .7em; border-radius:6px; border:1px solid var(--line);
+  }
+  @media print{
+    body{overflow:visible; background:#fff;}
+    .slide{display:flex !important; position:relative; height:100vh;
+           page-break-after:always; border-bottom:1px solid #ccc;}
+    #notes,#help,#bar{display:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide active center" data-notes="Open here. Say your name, then the one line that reframes everything: 'The AI wrote most of this code. My job was to decide whether it was right — and three times it told me a story was done when it wasn't.'">
+  <div class="kicker">Colaberry Internship · Release R0</div>
+  <h1>TalentSignal<br>Revenue Engine</h1>
+  <p class="lede" style="margin-top:.7em">The walking skeleton — S-01 to S-03</p>
+  <p style="margin-top:2.2em; color:var(--muted)">Megan Dimiyo-Mbenoun &nbsp;·&nbsp; July 2026</p>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-notes="Keep this to 30 seconds. Do not rush past it — it is the only slide that explains why anyone should care. The word that matters is 'last'.">
+  <div class="kicker">The problem</div>
+  <h2>Staffing agencies find out last</h2>
+  <p class="lede">A salesperson learns a client needs people when the client calls and asks.</p>
+  <p class="lede" style="margin-top:.8em">By then three other agencies got the same call. You are competing on price for work you heard about last.</p>
+  <div class="spacer"></div>
+  <p class="big" style="color:var(--accent)">TalentSignal finds the demand<br>before the ask.</p>
+  <footer><span>The problem</span><span>2</span></footer>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-notes="Anticipate the 'why is it so plain' question here rather than waiting for it. A walking skeleton that looks impressive is one that built features it shouldn't have yet.">
+  <div class="kicker">What R0 is</div>
+  <h2>R0 builds none of that intelligence</h2>
+  <p class="lede">It builds the spine — and proves the spine works.</p>
+  <div class="grid2" style="margin-top:1.4em">
+    <div class="card">
+      <h3>A walking skeleton</h3>
+      <p>The thinnest possible slice through every layer, with no features in it.</p>
+    </div>
+    <div class="card">
+      <h3>Why first</h3>
+      <p>Build features on unproven plumbing and every bug becomes: my code, the network, Docker, or the database?</p>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <p class="quote">Prove every layer talks<br>before building anything on top of them.</p>
+  <footer><span>What R0 is</span><span>3</span></footer>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-notes="Point at the adapter. Say: the job board is mocked, but it sits behind an interface — swapping in a real feed changes one line in the startup file. The route, the scoring, and the tests don't change at all.">
+  <div class="kicker">Architecture</div>
+  <h2>One command starts all of it</h2>
+  <div class="flow">
+    <div class="node">React</div><span class="arrow">→</span>
+    <div class="node">Express API</div><span class="arrow">→</span>
+    <div class="node">PostgreSQL</div>
+  </div>
+  <div class="flow" style="margin-left:11.5em">
+    <span class="arrow">↑</span>
+    <div class="node hi">Provider adapter → mocked job board</div>
+  </div>
+  <div class="grid3" style="margin-top:1.6em">
+    <div class="card"><h3>S-01</h3><p>Stack, health, structured logging, migrations</p></div>
+    <div class="card"><h3>S-02</h3><p>Register, login, bcrypt, JWT, rate limiting</p></div>
+    <div class="card"><h3>S-03</h3><p>Signal → scored opportunity, on screen</p></div>
+  </div>
+  <footer><span>Architecture</span><span>4</span></footer>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-notes="This is the client's own doctrine, not something I invented. Name the three R0 makes real and move on — the demo proves them better than this slide does.">
+  <div class="kicker">The governing principle</div>
+  <h2>Trust Before Intelligence</h2>
+  <p class="lede">The platform earns the right to be smart by first being safe, transparent and reversible.</p>
+  <div class="grid3" style="margin-top:1.5em">
+    <div class="card"><h3>Observable</h3><p>Every request logged with a correlation id, route and duration — from commit one.</p></div>
+    <div class="card"><h3>Never asserted</h3><p>Every score shows its confidence, its reasons and its source.</p></div>
+    <div class="card"><h3>Safe by construction</h3><p>Passwords hashed, never logged. Login leaks nothing about who has an account.</p></div>
+  </div>
+  <footer><span>Trust Before Intelligence</span><span>5</span></footer>
+</section>
+
+<!-- 6 -->
+<section class="slide center" data-notes="GO TO THE SCREEN. Order: compose up (services sequence) → /api/health → register and log in → search logs for your password, find nothing → show the bcrypt hashes in the DB → analyze, opportunity appears → STOP THE DATABASE CONTAINER and reload. Breaking it on purpose is your strongest moment.">
+  <div class="kicker">Live</div>
+  <h1 style="color:var(--accent)">Demo</h1>
+  <p class="lede" style="margin-top:1em">One command. Three services. A signal becomes an opportunity.</p>
+  <p class="lede" style="margin-top:1.6em"><strong>Then I break it on purpose.</strong></p>
+  <footer><span>Demo</span><span>6</span></footer>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-notes="THE CENTRE OF THE TALK. Say the line: 'The AI wrote most of this code. My job was to decide whether it was right.' Then: three times it reported a story finished when it wasn't.">
+  <div class="kicker">The actual work</div>
+  <h2>My job was review</h2>
+  <p class="quote">The AI wrote most of this code.<br>My job was to decide whether it was right.</p>
+  <div class="spacer"></div>
+  <div class="grid2">
+    <div class="card"><h3 style="color:var(--warn)">8 defects caught</h3><p>Before they shipped — in plans and in code already reported as done.</p></div>
+    <div class="card"><h3 style="color:var(--warn)">3 stories</h3><p>Declared complete when they weren't.</p></div>
+  </div>
+  <footer><span>What review caught</span><span>7</span></footer>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-notes="The distinction is the point: depends_on waits for a container to START, not to be READY. The acceptance criterion said 'Given a fresh clone' — it would have failed on exactly the scenario it was written for.">
+  <div class="kicker">Defect 1 · S-01</div>
+  <h2>The cold-start race</h2>
+  <p class="lede">All three containers started at once. PostgreSQL takes seconds to accept connections — so the API would come up, try to connect, and fail.</p>
+  <div class="card" style="margin-top:1.2em">
+    <p><code>depends_on</code> waits for a container to <strong>start</strong>, not to be <strong>ready</strong>. That distinction is not obvious, and it bites almost everyone.</p>
+  </div>
+  <div class="spacer"></div>
+  <p><span class="tag good">Fixed</span> &nbsp;<code>pg_isready</code> healthcheck + <code>depends_on: condition: service_healthy</code></p>
+  <footer><span>Defect 1 — cold-start race</span><span>8</span></footer>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-notes="The most serious one. Role-based access control is scheduled for S-14 — it would have been decorative, because users would already have handed themselves admin at signup.">
+  <div class="kicker">Defect 2 · S-02</div>
+  <h2>Privilege escalation</h2>
+  <p class="lede">The plan had registration accept a role from the request body.</p>
+  <p class="big mono" style="margin:.8em 0; color:var(--warn)">{ "role": "admin" }</p>
+  <p class="lede">Anyone could have made themselves an administrator.</p>
+  <div class="spacer"></div>
+  <p><span class="tag good">Fixed</span> &nbsp;Registration hardcodes <code>sales</code>. Admin bootstrapped from environment variables at boot.</p>
+  <footer><span>Defect 2 — privilege escalation</span><span>9</span></footer>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-notes="The trust scenario says ANY request produces a log line. An aborted request produced none — which is exactly the silence structured logging exists to prevent. Good example of a defect inside the safety feature itself.">
+  <div class="kicker">Defect 3 · S-01</div>
+  <h2>The logger went silent</h2>
+  <p class="lede">It listened for <code>finish</code> — which only fires when a response completes normally.</p>
+  <p class="lede" style="margin-top:.8em">Close the tab mid-request and <code>finish</code> never fires. <strong>No log line at all.</strong></p>
+  <div class="card" style="margin-top:1.1em">
+    <p>The defect was inside the safety feature itself — the one thing meant to make failures visible was invisible in exactly the case that mattered.</p>
+  </div>
+  <div class="spacer"></div>
+  <p><span class="tag good">Fixed</span> &nbsp;Also listen for <code>close</code>; use <code>writableEnded</code> to tell completed from aborted.</p>
+  <footer><span>Defect 3 — silent logger</span><span>10</span></footer>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-notes="Read these fast. If asked which was most embarrassing: the login screens — S-02 was marked complete on Basecamp without them, and I corrected it publicly rather than folding it in quietly.">
+  <div class="kicker">And five more</div>
+  <h2>The rest</h2>
+  <table>
+    <tr><th>What</th><th>Why it mattered</th></tr>
+    <tr><td>No tests in the plan</td><td>The story could not have passed its own definition of done</td></tr>
+    <tr><td>Test depended on outside state</td><td>Would have been a coin flip in CI</td></tr>
+    <tr><td>Documented API path returned 404</td><td>Only worked in a browser; would break at deployment</td></tr>
+    <tr><td>Security middleware never applied</td><td>Written in S-02, wired to nothing — endpoints were open</td></tr>
+    <tr><td>Login screens never built</td><td>S-02 reported complete without them</td></tr>
+  </table>
+  <div class="spacer"></div>
+  <p class="lede">I corrected the last one publicly on Basecamp rather than folding it in quietly.</p>
+  <footer><span>The rest</span><span>11</span></footer>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-notes="Say plainly: on the JWT lifetime I argued for 15 minutes plus refresh. Claude Code made the better argument and I changed my mind. Admitting you lost one makes the other seven credible.">
+  <div class="kicker">Judgement calls</div>
+  <h2>Decisions, not defaults</h2>
+  <table>
+    <tr><th>Decision</th><th>Reasoning</th></tr>
+    <tr><td>TypeScript over JavaScript</td><td>"tsc clean" in the definition of done; retrofitting types across 20 stories costs far more</td></tr>
+    <tr><td>bcrypt cost 12</td><td>Conflicts with our own p95 target — the slowness <em>is</em> the security. Escalated rather than weakened</td></tr>
+    <tr><td>1-hour token, no refresh</td><td>Refresh machinery deserves building once, properly. Cost: a stolen token lives an hour</td></tr>
+    <tr><td>Raw SQL migrations</td><td>Keeps the schema visible; an append-only audit trail is coming in S-15</td></tr>
+  </table>
+  <div class="spacer"></div>
+  <p class="lede">On the token lifetime I argued the other side — and lost. The counter-argument was better.</p>
+  <footer><span>Decisions</span><span>12</span></footer>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-notes="VOLUNTEER THIS. Do not wait to be asked. The spec says these are a business decision I shouldn't invent — I asked, got no answer before the deadline, and shipped a documented proposal rather than missing the date or hiding the guess.">
+  <div class="kicker">Being honest about the model</div>
+  <h2>These weights are mine</h2>
+  <table>
+    <tr><th>Factor</th><th>Weight</th><th>Why a salesperson would accept it</th></tr>
+    <tr><td>Base</td><td class="mono">0.20</td><td>A real posting existing is itself weak evidence</td></tr>
+    <tr><td>Reposted role</td><td class="mono">0.32</td><td>They tried once and failed to fill it</td></tr>
+    <tr><td>Days open (max 30)</td><td class="mono">0.32</td><td>The longer it sits, the more they need help</td></tr>
+    <tr><td>No salary range</td><td class="mono">0.16</td><td>Correlates with less structured hiring</td></tr>
+  </table>
+  <div class="card" style="margin-top:1.1em">
+    <p><span class="tag warn">Pending approval</span> &nbsp;The spec says these are a business decision I shouldn't invent. I asked, got no answer before the deadline, and shipped a documented proposal — every constant in one config object, so the client's answer is a one-line change.</p>
+  </div>
+  <footer><span>The confidence score</span><span>13</span></footer>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-notes="Precision about the limits of your knowledge is what makes everything else believable. If asked about 1000 concurrent users: 'No idea. That's S-18 and I haven't measured it.'">
+  <div class="kicker">Limits</div>
+  <h2>What I have not proven</h2>
+  <ul style="margin-top:.6em">
+    <li><strong>The job board is mocked.</strong> Real, but behind an interface — one line to swap.</li>
+    <li><strong>The confidence weights are unapproved.</strong> Mine, flagged, pending the client.</li>
+    <li><strong>Roles exist but nothing enforces them.</strong> That is S-14.</li>
+    <li><strong>Nothing is deployed.</strong> It has never faced the internet. That is S-20.</li>
+    <li><strong>Performance is unmeasured.</strong> I will not claim a number I have not tested. That is S-18.</li>
+  </ul>
+  <div class="spacer"></div>
+  <p class="quote">I would rather say "I haven't measured that"<br>than guess in front of you.</p>
+  <footer><span>What I have not proven</span><span>14</span></footer>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-notes="Close in fifteen seconds. R0 proved the spine. R1 makes it intelligent. Then stop talking and take questions.">
+  <div class="kicker">Next</div>
+  <h2>R1 — Core intelligence</h2>
+  <div class="grid2" style="margin-top:.6em">
+    <div class="card"><h3>S-04</h3><p>Hidden demand analysis with explainable, bounded scores</p></div>
+    <div class="card"><h3>S-05</h3><p>Clients and candidates, with PII tagged from the first migration</p></div>
+    <div class="card"><h3>S-06</h3><p>Ranked candidates for a job opening, with a rationale</p></div>
+    <div class="card"><h3>S-07</h3><p>Opportunity scoring, idempotent</p></div>
+  </div>
+  <div class="spacer"></div>
+  <p class="big">R0 proved the spine.<br>R1 makes it intelligent.</p>
+  <footer><span>Next</span><span>15</span></footer>
+</section>
+
+</div>
+
+<div id="notes"></div>
+<div id="help">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const notesEl = document.getElementById('notes');
+  const bar = document.getElementById('bar');
+  let i = 0, notesOn = false;
+
+  function render(){
+    slides.forEach((s,n)=> s.classList.toggle('active', n===i));
+    bar.style.width = ((i+1)/slides.length*100) + '%';
+    notesEl.innerHTML = '<b>Slide ' + (i+1) + '</b> &nbsp; ' +
+      (slides[i].dataset.notes || 'No notes.');
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length-1, n)); render(); }
+
+  document.addEventListener('keydown', e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){ e.preventDefault(); go(i+1); }
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ e.preventDefault(); go(i-1); }
+    else if(e.key==='Home'){ go(0); }
+    else if(e.key==='End'){ go(slides.length-1); }
+    else if(e.key.toLowerCase()==='n'){ notesOn=!notesOn; notesEl.classList.toggle('show',notesOn); }
+    else if(e.key.toLowerCase()==='f'){
+      if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+  document.addEventListener('click', e=>{
+    if(e.target.closest('#notes')) return;
+    go(i + (e.clientX > window.innerWidth/2 ? 1 : -1));
+  });
+  render();
+</script>
+</body>
+</html>
