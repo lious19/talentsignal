@@ -21,8 +21,12 @@ export function requestLogger(
   res.setHeader("X-Correlation-Id", correlationId);
 
   const startedAt = process.hrtime.bigint();
+  let logged = false;
 
-  res.on("finish", () => {
+  const logOnce = (aborted: boolean): void => {
+    if (logged) return;
+    logged = true;
+
     const durationNs = process.hrtime.bigint() - startedAt;
     const durationMs = Number(durationNs) / 1_000_000;
 
@@ -33,10 +37,19 @@ export function requestLogger(
         method: req.method,
         statusCode: res.statusCode,
         durationMs: Math.round(durationMs * 100) / 100,
+        aborted,
       },
-      "request completed",
+      aborted ? "request aborted" : "request completed",
     );
-  });
+  };
+
+  res.on("finish", () => logOnce(false));
+  // "finish" only fires when the full response was flushed to the client.
+  // If the client disconnects mid-request, "finish" never comes and, without
+  // this, the request would go completely unlogged. "close" fires in both
+  // cases, so res.writableEnded (set the moment res.end() is called) is what
+  // tells a normal completion apart from a premature disconnect.
+  res.on("close", () => logOnce(!res.writableEnded));
 
   next();
 }

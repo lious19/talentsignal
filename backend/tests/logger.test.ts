@@ -44,6 +44,7 @@ describe("requestLogger middleware", () => {
     expect((logLine.correlationId as string).length).toBeGreaterThan(0);
     expect(typeof logLine.durationMs).toBe("number");
     expect(logLine.durationMs as number).toBeGreaterThanOrEqual(0);
+    expect(logLine.aborted).toBe(false);
   });
 
   it("honors an inbound X-Correlation-Id header instead of replacing it", async () => {
