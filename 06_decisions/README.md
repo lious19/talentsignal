@@ -41,7 +41,8 @@ The observation that should make us revisit it.
 
 | # | Question | Story | Blocking? |
 |---|---|---|---|
-| — | Confidence score: what factors, what weights? | S-03 | **hard — ask Ali** |
+| 007 | Confidence score: what factors, what weights? (proposal drafted, awaiting Ali) | S-03 | **hard — ask Ali** |
 | — | TypeScript or JavaScript? (DoD says "tsc clean") | all | **hard — ask Ali** |
 | — | Recruiter self-service account creation before S-14? (see 003) | S-02 | soft |
 | — | Is REQ-017's p95 exempt for auth endpoints? (see 006) | S-02 | soft |
+| — | JWT storage: localStorage now, revisit at S-20 if origin topology makes an httpOnly cookie cheap (see 008) | S-02/S-20 | soft |

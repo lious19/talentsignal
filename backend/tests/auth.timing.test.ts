@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeUsersPool } from "./helpers/fakeUsersPool";
+import { noopProvider } from "./helpers/noopProvider";
 
 /**
  * Verifies the timing-parity defense described in routes/auth.ts (always
@@ -17,14 +18,14 @@ const describeIfRequested = process.env.RUN_TIMING_TESTS === "1" ? describe : de
 describeIfRequested("login timing parity (opt-in, not part of CI)", () => {
   it("an unknown email takes roughly as long as a wrong password", async () => {
     const { pool } = createFakeUsersPool();
-    const app = createApp(pool);
+    const app = createApp(pool, noopProvider);
     await request(app)
-      .post("/auth/register")
+      .post("/api/auth/register")
       .send({ email: "timing-test@example.com", password: "correct-horse-battery" });
 
     const time = async (email: string, password: string) => {
       const startedAt = process.hrtime.bigint();
-      await request(app).post("/auth/login").send({ email, password });
+      await request(app).post("/api/auth/login").send({ email, password });
       return Number(process.hrtime.bigint() - startedAt) / 1_000_000;
     };
 

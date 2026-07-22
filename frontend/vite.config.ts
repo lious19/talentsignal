@@ -12,10 +12,13 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
+      // No rewrite: the backend serves every route under /api itself now,
+      // so /api/* in maps straight to /api/* on the backend. S-20 serves the
+      // built frontend with no Vite dev server, so nothing here can rely on
+      // path rewriting to make routes line up.
       "/api": {
         target: "http://backend:4000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },

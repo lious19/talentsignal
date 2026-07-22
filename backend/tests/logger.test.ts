@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import type { Pool } from "pg";
 import { createApp } from "../src/app";
+import { noopProvider } from "./helpers/noopProvider";
 
 function fakePool(): Pool {
   return { query: vi.fn(async () => ({ rows: [{}] })) } as unknown as Pool;
@@ -33,12 +34,12 @@ describe("requestLogger middleware", () => {
 
   it("emits one JSON line with a correlation id, route, and duration", async () => {
     const lines = captureStdout();
-    const app = createApp(fakePool());
+    const app = createApp(fakePool(), noopProvider);
 
-    await request(app).get("/health");
+    await request(app).get("/api/health");
 
     const logLine = findRequestCompletedLine(lines);
-    expect(logLine.route).toBe("/health");
+    expect(logLine.route).toBe("/api/health");
     expect(logLine.method).toBe("GET");
     expect(typeof logLine.correlationId).toBe("string");
     expect((logLine.correlationId as string).length).toBeGreaterThan(0);
@@ -49,10 +50,10 @@ describe("requestLogger middleware", () => {
 
   it("honors an inbound X-Correlation-Id header instead of replacing it", async () => {
     const lines = captureStdout();
-    const app = createApp(fakePool());
+    const app = createApp(fakePool(), noopProvider);
 
     const res = await request(app)
-      .get("/health")
+      .get("/api/health")
       .set("X-Correlation-Id", "test-fixed-id");
 
     expect(res.headers["x-correlation-id"]).toBe("test-fixed-id");
@@ -62,9 +63,9 @@ describe("requestLogger middleware", () => {
 
   it("generates a fresh correlation id when none is supplied", async () => {
     const lines = captureStdout();
-    const app = createApp(fakePool());
+    const app = createApp(fakePool(), noopProvider);
 
-    const res = await request(app).get("/health");
+    const res = await request(app).get("/api/health");
 
     const headerId = res.headers["x-correlation-id"];
     expect(headerId).toBeTruthy();

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeUsersPool } from "./helpers/fakeUsersPool";
+import { noopProvider } from "./helpers/noopProvider";
 import { logger } from "../src/logger";
 
 const RAW_PASSWORD = "S3cretTestPassphrase-do-not-leak-me";
@@ -23,20 +24,20 @@ describe("trust scenario: the raw password never reaches the logs", () => {
   it("does not appear anywhere in stdout during register + login (full-text scan, not field-by-field)", async () => {
     const lines = captureStdout();
     const { pool } = createFakeUsersPool();
-    const app = createApp(pool);
+    const app = createApp(pool, noopProvider);
 
     await request(app)
-      .post("/auth/register")
+      .post("/api/auth/register")
       .send({ email: "log-safety@example.com", password: RAW_PASSWORD });
     await request(app)
-      .post("/auth/login")
+      .post("/api/auth/login")
       .send({ email: "log-safety@example.com", password: RAW_PASSWORD });
     // A failed login carries the raw password through the request/response
     // cycle too — worth covering, since the trust scenario is about anything
     // that "persists a user," and a login attempt against that same account
     // still runs the same code paths.
     await request(app)
-      .post("/auth/login")
+      .post("/api/auth/login")
       .send({ email: "log-safety@example.com", password: "wrong-" + RAW_PASSWORD });
 
     const fullOutput = lines.join("");

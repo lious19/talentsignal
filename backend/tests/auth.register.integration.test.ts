@@ -4,6 +4,7 @@ import request from "supertest";
 import { Pool } from "pg";
 import { createApp } from "../src/app";
 import { runMigrations } from "../src/db/migrate";
+import { noopProvider } from "./helpers/noopProvider";
 
 // The fake pool in the other register tests simulates a unique-violation;
 // this proves the real guarantee — that Postgres itself, not application
@@ -25,7 +26,7 @@ describeIfDb("POST /auth/register (integration, requires DATABASE_URL)", () => {
   });
 
   it("a genuinely concurrent duplicate registration: exactly one wins", async () => {
-    const app = createApp(pool);
+    const app = createApp(pool, noopProvider);
     // Unique per test run so this never collides with a previous run's data
     // and needs no cleanup.
     const email = `concurrent-${randomUUID()}@example.com`;
@@ -34,8 +35,8 @@ describeIfDb("POST /auth/register (integration, requires DATABASE_URL)", () => {
     // Fired together, not sequentially, to actually exercise the race rather
     // than just two calls that happen to run one after the other.
     const [first, second] = await Promise.all([
-      request(app).post("/auth/register").send(body),
-      request(app).post("/auth/register").send(body),
+      request(app).post("/api/auth/register").send(body),
+      request(app).post("/api/auth/register").send(body),
     ]);
 
     const statuses = [first.status, second.status].sort();

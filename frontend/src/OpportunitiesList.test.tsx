@@ -1,0 +1,70 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { OpportunitiesList } from "./OpportunitiesList";
+
+const OPPORTUNITY = {
+  id: "opp-1",
+  company: "Acme Corp",
+  confidenceScore: 0.72,
+  reasons: ["reposted role", "open 24 days", "no salary range"],
+  source: "mock-job-board",
+};
+
+describe("OpportunitiesList", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("shows an expired-session message when no token is stored", async () => {
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText(/session has expired/i)).toBeInTheDocument());
+  });
+
+  it("renders confidence, reasons, and source together for each opportunity (trust scenario)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [OPPORTUNITY] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    const item = screen.getByText("Acme Corp").closest("li");
+    expect(item).not.toBeNull();
+    // Never a bare number: confidence, the plain-English reasons, and the
+    // source all have to appear in the same list item.
+    expect(item).toHaveTextContent("72% confidence");
+    expect(item).toHaveTextContent("reposted role, open 24 days, no salary range");
+    expect(item).toHaveTextContent("source: mock-job-board");
+  });
+
+  it("shows an unauthenticated message when the stored token is rejected", async () => {
+    localStorage.setItem("ts_token", "expired-or-invalid");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText(/session has expired/i)).toBeInTheDocument());
+  });
+
+  it("shows an error message when the request fails for another reason", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network error")));
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load opportunities/i)).toBeInTheDocument(),
+    );
+  });
+});

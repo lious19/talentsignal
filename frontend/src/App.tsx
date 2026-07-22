@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
+import { OpportunitiesList } from "./OpportunitiesList";
+import { LoginScreen } from "./LoginScreen";
+import { RegisterScreen } from "./RegisterScreen";
+import { clearStoredToken, getStoredToken } from "./auth";
 
 type HealthState =
   | { status: "loading" }
   | { status: "ok"; db: string }
   | { status: "error" };
 
+type AuthView = "login" | "register";
+
 export function App() {
   const [health, setHealth] = useState<HealthState>({ status: "loading" });
+  // Lazy initializer (the () => ... form) runs getStoredToken() once, on
+  // the first render only — not on every re-render the way `useState(getStoredToken())`
+  // would call it.
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [authView, setAuthView] = useState<AuthView>("login");
 
   useEffect(() => {
     let cancelled = false;
@@ -28,6 +39,12 @@ export function App() {
     };
   }, []);
 
+  function handleLogout() {
+    clearStoredToken();
+    setToken(null);
+    setAuthView("login");
+  }
+
   return (
     <main>
       <h1>TalentSignal</h1>
@@ -36,6 +53,20 @@ export function App() {
         {health.status === "ok" && <p>Backend reachable — db: {health.db}</p>}
         {health.status === "error" && <p>Backend unreachable</p>}
       </section>
+
+      {token ? (
+        <>
+          <button onClick={handleLogout}>Log out</button>
+          <section aria-label="opportunities">
+            <h2>Opportunities</h2>
+            <OpportunitiesList />
+          </section>
+        </>
+      ) : authView === "login" ? (
+        <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />
+      ) : (
+        <RegisterScreen onSuccess={setToken} onSwitchToLogin={() => setAuthView("login")} />
+      )}
     </main>
   );
 }

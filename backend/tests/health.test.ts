@@ -2,17 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import type { Pool } from "pg";
 import { createApp } from "../src/app";
+import { noopProvider } from "./helpers/noopProvider";
 
 function fakePool(queryImpl: () => Promise<unknown>): Pool {
   return { query: vi.fn(queryImpl) } as unknown as Pool;
 }
 
-describe("GET /health", () => {
+describe("GET /api/health", () => {
   it("returns 200 ok when the database responds (happy path)", async () => {
     const pool = fakePool(async () => ({ rows: [{ "?column?": 1 }] }));
-    const app = createApp(pool);
+    const app = createApp(pool, noopProvider);
 
-    const res = await request(app).get("/health");
+    const res = await request(app).get("/api/health");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok", db: "ok" });
@@ -22,9 +23,9 @@ describe("GET /health", () => {
     const pool = fakePool(async () => {
       throw new Error("connection refused");
     });
-    const app = createApp(pool);
+    const app = createApp(pool, noopProvider);
 
-    const res = await request(app).get("/health");
+    const res = await request(app).get("/api/health");
 
     expect(res.status).toBe(503);
     expect(res.body).toEqual({ status: "error", db: "unreachable" });
