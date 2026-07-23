@@ -64,10 +64,14 @@ export function OpportunitiesList() {
 
   if (state.opportunities.length === 0) return <p>No opportunities yet.</p>;
 
+  // The API already returns opportunities ranked by confidence descending
+  // (S-04), so rank is just this array's position — no separate field to
+  // keep in sync with the sort order the backend already applied.
   return (
     <ul aria-label="opportunities">
-      {state.opportunities.map((opportunity) => (
+      {state.opportunities.map((opportunity, index) => (
         <li key={opportunity.id}>
+          <span>#{index + 1}</span>{" "}
           <strong>{opportunity.company}</strong>{" "}
           <span>{Math.round(opportunity.confidenceScore * 100)}% confidence</span>
           {" — "}

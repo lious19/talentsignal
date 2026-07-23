@@ -13,10 +13,15 @@ export interface FakeOpportunityRow {
 }
 
 /**
- * In-memory stand-in for the opportunities table, faithful to the one thing
- * that matters here: ON CONFLICT (source, external_signal_id) DO UPDATE
- * behaves as an upsert, never a second row, mirroring the real UNIQUE
- * constraint in 003_opportunities.sql.
+ * In-memory stand-in for the opportunities table, faithful to the two things
+ * that matter here: ON CONFLICT (source, external_signal_id) DO UPDATE
+ * behaves as an upsert, never a second row (mirroring the real UNIQUE
+ * constraint in 003_opportunities.sql), and the batch upsert in
+ * hiddenDemand.ts's upsertBatch() is genuinely one query call regardless of
+ * how many rows it carries — this fake mirrors that shape (five parallel
+ * array params, one query() call) rather than looping per row itself, so a
+ * test asserting query.mock.calls.length actually proves something about the
+ * real query, not an artifact of how the fake happens to be built.
  */
 export function createFakeOpportunitiesPool() {
   const rows: FakeOpportunityRow[] = [];
@@ -24,39 +29,56 @@ export function createFakeOpportunitiesPool() {
 
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (sql.includes("INSERT INTO opportunities")) {
-      const [source, externalSignalId, company, confidenceScore, reasons] = params as [
-        string,
-        string,
-        string,
-        number,
+      const [sources, externalIds, companies, scores, reasonsJoined, delimiter] = params as [
         string[],
+        string[],
+        string[],
+        number[],
+        string[],
+        string,
       ];
       const now = new Date().toISOString();
-      const existing = rows.find(
-        (r) => r.source === source && r.external_signal_id === externalSignalId,
-      );
-      if (existing) {
-        existing.confidence_score = String(confidenceScore);
-        existing.reasons = reasons;
-        existing.updated_at = now;
-        return { rows: [existing] };
+      const returned: FakeOpportunityRow[] = [];
+
+      for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        const externalSignalId = externalIds[i];
+        const company = companies[i];
+        const confidenceScore = scores[i];
+        const reasons = reasonsJoined[i].split(delimiter);
+
+        const existing = rows.find(
+          (r) => r.source === source && r.external_signal_id === externalSignalId,
+        );
+        if (existing) {
+          existing.confidence_score = String(confidenceScore);
+          existing.reasons = reasons;
+          existing.updated_at = now;
+          returned.push(existing);
+          continue;
+        }
+        const row: FakeOpportunityRow = {
+          id: String(nextId++),
+          source,
+          external_signal_id: externalSignalId,
+          company,
+          confidence_score: String(confidenceScore),
+          reasons,
+          created_at: now,
+          updated_at: now,
+        };
+        rows.push(row);
+        returned.push(row);
       }
-      const row: FakeOpportunityRow = {
-        id: String(nextId++),
-        source,
-        external_signal_id: externalSignalId,
-        company,
-        confidence_score: String(confidenceScore),
-        reasons,
-        created_at: now,
-        updated_at: now,
-      };
-      rows.push(row);
-      return { rows: [row] };
+
+      return { rows: returned };
     }
 
     if (sql.includes("SELECT * FROM opportunities")) {
-      return { rows: [...rows].reverse() };
+      const filtered = sql.includes("WHERE source !=")
+        ? rows.filter((r) => r.source !== "seed-job-board")
+        : rows;
+      return { rows: [...filtered].reverse() };
     }
 
     throw new Error(`fakeOpportunitiesPool: unexpected query — ${sql}`);

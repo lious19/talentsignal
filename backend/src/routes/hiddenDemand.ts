@@ -1,8 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import type { Pool } from "pg";
 import { logger } from "../logger";
 import { requireAuth } from "../middleware/requireAuth";
-import type { MarketSignalProvider } from "../adapters/marketSignalProvider";
+import type { MarketSignal, MarketSignalProvider } from "../adapters/marketSignalProvider";
 import { scoreSignal } from "../scoring/confidenceScore";
 
 // The mock does no real I/O, but the timeout is real regardless: it bounds
@@ -45,6 +45,82 @@ function toOpportunityResponse(row: OpportunityRow) {
   };
 }
 
+// Ranked by confidence descending; external_signal_id (unique, stable) is the
+// tiebreak, not created_at — a batch insert can give many rows the exact same
+// now(), which would make equal-score ordering nondeterministic and flake the
+// idempotency test.
+function byRankThenId(
+  a: ReturnType<typeof toOpportunityResponse>,
+  b: ReturnType<typeof toOpportunityResponse>,
+): number {
+  if (b.confidenceScore !== a.confidenceScore) return b.confidenceScore - a.confidenceScore;
+  return a.externalSignalId < b.externalSignalId ? -1 : a.externalSignalId > b.externalSignalId ? 1 : 0;
+}
+
+// reasons is TEXT[] in Postgres, but unnest() can't walk a scalar array
+// (source, external_signal_id, ...) and a nested array (reasons) in lockstep
+// as one row per index — unnest flattens a 2-D array into individual
+// elements, not sub-arrays per row. So each row's reasons are joined into one
+// string with a delimiter before the query, and split back into a real array
+// inside SQL (string_to_array). U+001F (Unit Separator) is the ASCII control
+// character reserved for exactly this — joining sub-elements of one field —
+// so it can't collide with anything scoreSignal() actually writes into a
+// reason ("reposted role", "no salary range", ...).
+const REASONS_DELIMITER = "\u001F";
+
+/**
+ * Scores and upserts a whole batch in ONE statement via unnest(), not one
+ * `pool.query` per signal. That distinction is the entire latency story here:
+ * Postgres also caps a query at 65535 bind parameters, and a dynamically
+ * built multi-VALUES statement (5 columns * 10,000 rows = 50,000 params)
+ * sits close enough to that ceiling to be a real risk at the exact scale this
+ * story targets. unnest() takes one array parameter per column — 5 params
+ * total, regardless of whether the batch has 1 row or 10,000 — and stays a
+ * single atomic statement, so a batch either fully upserts or fully fails,
+ * never half-applies.
+ */
+async function upsertBatch(
+  pool: Pool,
+  signals: MarketSignal[],
+): Promise<ReturnType<typeof toOpportunityResponse>[]> {
+  if (signals.length === 0) return [];
+
+  const sources: string[] = [];
+  const externalIds: string[] = [];
+  const companies: string[] = [];
+  const scores: number[] = [];
+  const reasonsJoined: string[] = [];
+
+  for (const signal of signals) {
+    const { score, reasons } = scoreSignal(signal);
+    sources.push(signal.source);
+    externalIds.push(signal.externalId);
+    companies.push(signal.company);
+    scores.push(score);
+    reasonsJoined.push(reasons.join(REASONS_DELIMITER));
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO opportunities (source, external_signal_id, company, confidence_score, reasons)
+     SELECT
+       src.source,
+       src.external_signal_id,
+       src.company,
+       src.confidence_score,
+       string_to_array(src.reasons_joined, $6)
+     FROM unnest($1::text[], $2::text[], $3::text[], $4::numeric[], $5::text[])
+       AS src(source, external_signal_id, company, confidence_score, reasons_joined)
+     ON CONFLICT (source, external_signal_id)
+     DO UPDATE SET confidence_score = EXCLUDED.confidence_score,
+                   reasons = EXCLUDED.reasons,
+                   updated_at = now()
+     RETURNING *`,
+    [sources, externalIds, companies, scores, reasonsJoined, REASONS_DELIMITER],
+  );
+
+  return (rows as OpportunityRow[]).map(toOpportunityResponse).sort(byRankThenId);
+}
+
 export function hiddenDemandRouter(
   pool: Pool,
   provider: MarketSignalProvider,
@@ -70,21 +146,7 @@ export function hiddenDemandRouter(
     }
 
     try {
-      const opportunities = [];
-      for (const signal of signals) {
-        const { score, reasons } = scoreSignal(signal);
-        const { rows } = await pool.query(
-          `INSERT INTO opportunities (source, external_signal_id, company, confidence_score, reasons)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (source, external_signal_id)
-           DO UPDATE SET confidence_score = EXCLUDED.confidence_score,
-                         reasons = EXCLUDED.reasons,
-                         updated_at = now()
-           RETURNING *`,
-          [signal.source, signal.externalId, signal.company, score, reasons],
-        );
-        opportunities.push(toOpportunityResponse(rows[0] as OpportunityRow));
-      }
+      const opportunities = await upsertBatch(pool, signals);
 
       logger.info(
         { correlationId: req.correlationId, count: opportunities.length },
@@ -99,8 +161,18 @@ export function hiddenDemandRouter(
 
   router.get("/hidden-demand/opportunities", requireAuth, async (req, res) => {
     try {
-      const { rows } = await pool.query("SELECT * FROM opportunities ORDER BY created_at DESC");
-      res.status(200).json({ opportunities: rows.map((row) => toOpportunityResponse(row as OpportunityRow)) });
+      // Seed rows (source = 'seed-job-board', see SeedJobBoardProvider) are
+      // synthetic test data used to demo ranking and measure AC-4-2 latency —
+      // hidden from the board by default so they never look like real
+      // opportunities. ?includeSeedData=true opts back in for local/demo use.
+      const includeSeedData = req.query.includeSeedData === "true";
+      const { rows } = await pool.query(
+        includeSeedData
+          ? "SELECT * FROM opportunities"
+          : "SELECT * FROM opportunities WHERE source != 'seed-job-board'",
+      );
+      const opportunities = rows.map((row) => toOpportunityResponse(row as OpportunityRow)).sort(byRankThenId);
+      res.status(200).json({ opportunities });
     } catch (err) {
       logger.error({ correlationId: req.correlationId, err }, "list opportunities failed");
       res.status(500).json({ error: "failed to list opportunities" });

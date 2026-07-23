@@ -45,6 +45,31 @@ describe("OpportunitiesList", () => {
     expect(item).toHaveTextContent("source: mock-job-board");
   });
 
+  it("renders opportunities in the order the API returns them, numbered by rank (S-04)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const first = { ...OPPORTUNITY, id: "opp-1", company: "High Co", confidenceScore: 0.9 };
+    const second = { ...OPPORTUNITY, id: "opp-2", company: "Low Co", confidenceScore: 0.2 };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        // Already ranked by the backend (confidence descending) — the
+        // component trusts that order rather than re-sorting client-side.
+        json: async () => ({ opportunities: [first, second] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("High Co")).toBeInTheDocument());
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("#1");
+    expect(items[0]).toHaveTextContent("High Co");
+    expect(items[1]).toHaveTextContent("#2");
+    expect(items[1]).toHaveTextContent("Low Co");
+  });
+
   it("shows an unauthenticated message when the stored token is rejected", async () => {
     localStorage.setItem("ts_token", "expired-or-invalid");
     vi.stubGlobal(
