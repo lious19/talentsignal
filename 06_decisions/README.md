@@ -42,6 +42,8 @@ The observation that should make us revisit it.
 | # | Question | Story | Blocking? |
 |---|---|---|---|
 | 007 | Confidence score: what factors, what weights? (proposal drafted, awaiting Ali) | S-03 | **hard — ask Ali** |
+| 011 | Match score: skills/experience weight split (0.7/0.3), experience saturation cap, and combination shape (multiplicative, proposal drafted, awaiting Ali) | S-06 | **hard — ask Ali** |
+| 011 | Availability: display-only for now — needs Ali to define a vocabulary before it can become a real filter | S-06 | soft |
 | — | TypeScript or JavaScript? (DoD says "tsc clean") | all | **hard — ask Ali** |
 | — | Recruiter self-service account creation before S-14? (see 003, resolved for now by 010) | S-02 | soft |
 | — | Field-level vs whole-record PII gating (see 009) — decided with Megan, not yet Ali | S-05 | soft |

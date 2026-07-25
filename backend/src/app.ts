@@ -9,6 +9,7 @@ import { hiddenDemandRouter } from "./routes/hiddenDemand";
 import { clientsRouter } from "./routes/clients";
 import { candidatesRouter } from "./routes/candidates";
 import { jobOpeningsRouter } from "./routes/jobOpenings";
+import { clientMatchmakingRouter } from "./routes/clientMatchmaking";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
 
 export function createApp(
@@ -32,6 +33,7 @@ export function createApp(
   app.use("/api", clientsRouter(pool));
   app.use("/api", candidatesRouter(pool));
   app.use("/api", jobOpeningsRouter(pool));
+  app.use("/api", clientMatchmakingRouter(pool));
 
   return app;
 }
