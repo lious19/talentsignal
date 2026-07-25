@@ -43,6 +43,7 @@ The observation that should make us revisit it.
 |---|---|---|---|
 | 007 | Confidence score: what factors, what weights? (proposal drafted, awaiting Ali) | S-03 | **hard — ask Ali** |
 | — | TypeScript or JavaScript? (DoD says "tsc clean") | all | **hard — ask Ali** |
-| — | Recruiter self-service account creation before S-14? (see 003) | S-02 | soft |
+| — | Recruiter self-service account creation before S-14? (see 003, resolved for now by 010) | S-02 | soft |
+| — | Field-level vs whole-record PII gating (see 009) — decided with Megan, not yet Ali | S-05 | soft |
 | — | Is REQ-017's p95 exempt for auth endpoints? (see 006) | S-02 | soft |
 | — | JWT storage: localStorage now, revisit at S-20 if origin topology makes an httpOnly cookie cheap (see 008) | S-02/S-20 | soft |

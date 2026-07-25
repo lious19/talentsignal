@@ -14,16 +14,27 @@ blocks building, but each needs his eventual sign-off.
    endpoints, exempt auth. Needs his ruling.
 
 ## Questions that will come up in R1
-5. **No way to create a recruiter account.** Registration hardcodes `sales`; bootstrap makes
-   one admin. S-05 onward is recruiter-facing. Resolving with a documented call (likely:
-   admin can create users with roles). Confirm the intended onboarding flow.
-6. **PII tagging approach (S-05).** How PII is flagged at the schema level feeds S-15
-   compliance. Will propose and log; worth his eye since it's a compliance foundation.
+5. **Recruiter account creation, resolved (decision 010).** Built `POST /api/admin/users`,
+   admin-only, so an admin can create a recruiter (or any role). No second bootstrap
+   mechanism — demo flow is "log in as bootstrapped admin, create the recruiter." Confirm
+   this matches the onboarding flow he had in mind past the demo.
+6. **PII tagging approach, resolved (decision 009).** A `pii_fields` registry table, seeded
+   in S-05's first migration. Two independent facts per column, not one: `erasure_strategy`
+   (what S-15 executes) and `redact_from_display` (what S-05 hides today). `candidates.name`
+   is registered as PII (S-15 must be able to anonymize it) but *not* hidden from display —
+   `contact_info` is both. Worth his eye since it's the compliance foundation S-15 builds on.
+7. **Field-level vs whole-record PII gating (S-05) — decided with Megan, not yet with Ali.**
+   S-06 (due 3 days after S-05) needs any authenticated role to read `candidates.name`/
+   `skills`. S-05's trust scenario says "PII columns... access is role-gated." Read literally
+   as whole-record, that blocks S-06. Megan chose field-level (gate `contact_info`
+   specifically, leave `name` readable) — a conscious call made this session, not something
+   already agreed with Ali. If he reads it differently, `backend/src/routes/clients.ts` /
+   `candidates.ts` and S-06's candidate-read path both need revisiting.
 
 ## Process / scope
-7. **"Runs in the deployed demo" clause.** Nothing deploys until S-20, so every story is
+8. **"Runs in the deployed demo" clause.** Nothing deploys until S-20, so every story is
    "done" against the local stack, not the literal DoD. Reading it as local-now, deploy-later.
-8. **Phase-gate dates contradict story dates.** Gate 1 dated Jul 21 but R1 runs to Jul 30;
+9. **Phase-gate dates contradict story dates.** Gate 1 dated Jul 21 but R1 runs to Jul 30;
    Gate 3 Aug 11 but R4 runs to Aug 21. Which is authoritative?
-9. **Deploy credentials / hosting for talentsignal-demo.colaberry.dev** — who provisions it,
-   and do I have access? Needed well before S-20.
+10. **Deploy credentials / hosting for talentsignal-demo.colaberry.dev** — who provisions it,
+    and do I have access? Needed well before S-20.

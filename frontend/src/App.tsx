@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { OpportunitiesList } from "./OpportunitiesList";
 import { LoginScreen } from "./LoginScreen";
 import { RegisterScreen } from "./RegisterScreen";
+import { ClientsScreen } from "./ClientsScreen";
+import { CandidatesScreen } from "./CandidatesScreen";
+import { JobOpeningsScreen } from "./JobOpeningsScreen";
 import { clearStoredToken, getStoredToken } from "./auth";
 
 type HealthState =
@@ -61,6 +64,9 @@ export function App() {
             <h2>Opportunities</h2>
             <OpportunitiesList />
           </section>
+          <ClientsScreen />
+          <CandidatesScreen />
+          <JobOpeningsScreen />
         </>
       ) : authView === "login" ? (
         <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />

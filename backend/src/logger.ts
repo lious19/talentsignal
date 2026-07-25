@@ -8,10 +8,14 @@ export const logger = pino(
   {
     level: process.env.LOG_LEVEL ?? "info",
     timestamp: pino.stdTimeFunctions.isoTime,
-    // Belt-and-suspenders: no route today logs req.body or a raw user row,
-    // but this is the layer that survives someone adding one later without
-    // thinking about auth. Matches any field named password/passwordHash/
-    // password_hash at any nesting depth.
+    // Belt-and-suspenders: no route today logs req.body or a raw user/
+    // candidate/client row, but this is the layer that survives someone
+    // adding one later without thinking about it. Matches any field named
+    // password/passwordHash/password_hash or contactInfo/contact_info at any
+    // nesting depth. name is deliberately not here — S-05's PII registry
+    // marks it non-display-redacted (candidates.name is visible to every
+    // authenticated role already), so redacting it in logs specifically
+    // would be inconsistent rather than extra safety. See 06_decisions/009.
     redact: {
       paths: [
         "password",
@@ -23,6 +27,12 @@ export const logger = pino(
         "*.*.password",
         "*.*.passwordHash",
         "*.*.password_hash",
+        "contactInfo",
+        "contact_info",
+        "*.contactInfo",
+        "*.contact_info",
+        "*.*.contactInfo",
+        "*.*.contact_info",
       ],
       censor: "[Redacted]",
     },

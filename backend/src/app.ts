@@ -4,7 +4,11 @@ import type { Pool } from "pg";
 import { requestLogger } from "./middleware/requestLogger";
 import { healthRouter } from "./routes/health";
 import { authRouter } from "./routes/auth";
+import { adminRouter } from "./routes/admin";
 import { hiddenDemandRouter } from "./routes/hiddenDemand";
+import { clientsRouter } from "./routes/clients";
+import { candidatesRouter } from "./routes/candidates";
+import { jobOpeningsRouter } from "./routes/jobOpenings";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
 
 export function createApp(
@@ -23,7 +27,11 @@ export function createApp(
   // proxy's path rewrite to make these paths line up.
   app.use("/api", healthRouter(pool));
   app.use("/api", authRouter(pool));
+  app.use("/api", adminRouter(pool));
   app.use("/api", hiddenDemandRouter(pool, marketSignalProvider, options));
+  app.use("/api", clientsRouter(pool));
+  app.use("/api", candidatesRouter(pool));
+  app.use("/api", jobOpeningsRouter(pool));
 
   return app;
 }
