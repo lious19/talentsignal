@@ -38,11 +38,21 @@ describeIfDb("runMigrations (integration, requires DATABASE_URL)", () => {
     await adminPool.end();
   });
 
-  it("applies every migration against a pristine schema, then applies nothing on a second run", async () => {
-    const first = await runMigrations(scopedPool);
-    expect(first.applied.length).toBeGreaterThan(0);
+  it(
+    "applies every migration against a pristine schema, then applies nothing on a second run",
+    async () => {
+      const first = await runMigrations(scopedPool);
+      expect(first.applied.length).toBeGreaterThan(0);
 
-    const second = await runMigrations(scopedPool);
-    expect(second.applied).toEqual([]);
-  });
+      const second = await runMigrations(scopedPool);
+      expect(second.applied).toEqual([]);
+    },
+    // Applies every migration in db/migrations, each in its own transaction —
+    // a count that only grows over time. Vitest's 5000ms default is a stale
+    // budget from when there were far fewer; this isn't a migration
+    // performance bug, just a timeout that needs headroom as the migration
+    // set grows, so it stays generous rather than needing to be bumped again
+    // every few migrations.
+    30_000,
+  );
 });
