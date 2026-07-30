@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { getStoredToken } from "./auth";
 
+interface ScoreFactor {
+  factor: string;
+  weight: number;
+  value: number;
+  contribution: number;
+}
+
 interface Opportunity {
   id: string;
   company: string;
   confidenceScore: number;
   reasons: string[];
   source: string;
+  // Optional: rows scored before S-07 shipped were backfilled with an empty
+  // breakdown that can't be reconstructed (see 06_decisions/012) — treated
+  // the same as "missing" below, so an old row reads as explicitly
+  // not-audited rather than silently blank.
+  factors?: ScoreFactor[];
+  weightsVersion?: string;
 }
 
 type OpportunitiesState =
@@ -78,6 +91,27 @@ export function OpportunitiesList() {
           <span>{opportunity.reasons.join(", ")}</span>
           {" · "}
           <span>source: {opportunity.source}</span>
+          {/* Native <details>/<summary> gives expand/collapse via built-in
+              browser state — no useState needed, since the data is already
+              part of the fetched opportunity object (S-07 trust scenario:
+              a manager inspecting a score sees the weighted factors behind
+              it, never a bare number). */}
+          <details>
+            <summary>
+              Why this score{opportunity.weightsVersion ? ` (weights ${opportunity.weightsVersion})` : ""}
+            </summary>
+            {opportunity.factors && opportunity.factors.length > 0 ? (
+              <ul>
+                {opportunity.factors.map((f) => (
+                  <li key={f.factor}>
+                    {f.factor}: weight {f.weight}, value {f.value}, contributes {f.contribution}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No factor breakdown recorded (scored before S-07).</p>
+            )}
+          </details>
         </li>
       ))}
     </ul>

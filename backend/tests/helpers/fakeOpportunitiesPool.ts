@@ -8,6 +8,8 @@ export interface FakeOpportunityRow {
   company: string;
   confidence_score: string;
   reasons: string[];
+  weights_version: string;
+  factor_breakdown: unknown[];
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +20,7 @@ export interface FakeOpportunityRow {
  * behaves as an upsert, never a second row (mirroring the real UNIQUE
  * constraint in 003_opportunities.sql), and the batch upsert in
  * hiddenDemand.ts's upsertBatch() is genuinely one query call regardless of
- * how many rows it carries — this fake mirrors that shape (five parallel
+ * how many rows it carries — this fake mirrors that shape (seven parallel
  * array params, one query() call) rather than looping per row itself, so a
  * test asserting query.mock.calls.length actually proves something about the
  * real query, not an artifact of how the fake happens to be built.
@@ -29,14 +31,8 @@ export function createFakeOpportunitiesPool() {
 
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (sql.includes("INSERT INTO opportunities")) {
-      const [sources, externalIds, companies, scores, reasonsJoined, delimiter] = params as [
-        string[],
-        string[],
-        string[],
-        number[],
-        string[],
-        string,
-      ];
+      const [sources, externalIds, companies, scores, reasonsJoined, weightsVersions, breakdownsJson, delimiter] =
+        params as [string[], string[], string[], number[], string[], string[], string[], string];
       const now = new Date().toISOString();
       const returned: FakeOpportunityRow[] = [];
 
@@ -46,6 +42,11 @@ export function createFakeOpportunitiesPool() {
         const company = companies[i];
         const confidenceScore = scores[i];
         const reasons = reasonsJoined[i].split(delimiter);
+        const weightsVersion = weightsVersions[i];
+        // pg parses jsonb columns automatically on the way back out of a real
+        // query — this fake has to imitate that itself since it never
+        // actually goes through Postgres.
+        const factorBreakdown = JSON.parse(breakdownsJson[i]);
 
         const existing = rows.find(
           (r) => r.source === source && r.external_signal_id === externalSignalId,
@@ -53,6 +54,8 @@ export function createFakeOpportunitiesPool() {
         if (existing) {
           existing.confidence_score = String(confidenceScore);
           existing.reasons = reasons;
+          existing.weights_version = weightsVersion;
+          existing.factor_breakdown = factorBreakdown;
           existing.updated_at = now;
           returned.push(existing);
           continue;
@@ -64,6 +67,8 @@ export function createFakeOpportunitiesPool() {
           company,
           confidence_score: String(confidenceScore),
           reasons,
+          weights_version: weightsVersion,
+          factor_breakdown: factorBreakdown,
           created_at: now,
           updated_at: now,
         };
@@ -72,6 +77,12 @@ export function createFakeOpportunitiesPool() {
       }
 
       return { rows: returned };
+    }
+
+    if (sql.includes("WHERE id = ANY")) {
+      const [ids] = params as [string[]];
+      const idSet = new Set(ids);
+      return { rows: rows.filter((r) => idSet.has(r.id)) };
     }
 
     if (sql.includes("SELECT * FROM opportunities")) {

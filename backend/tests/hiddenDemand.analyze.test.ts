@@ -38,6 +38,11 @@ describe("POST /api/hidden-demand/analyze", () => {
     expect(opportunity.reasons).toEqual(
       expect.arrayContaining(["reposted role", "open 24 days", "no salary range"]),
     );
+    expect(typeof opportunity.weightsVersion).toBe("string");
+    expect(opportunity.factors).toHaveLength(4);
+    expect(opportunity.factors.map((f: { factor: string }) => f.factor)).toEqual(
+      expect.arrayContaining(["baseScore", "daysOpen", "repostedRole", "missingSalaryRange"]),
+    );
   });
 
   it("rejects an unauthenticated request", async () => {
@@ -63,9 +68,24 @@ describe("POST /api/hidden-demand/analyze", () => {
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
     expect(rows).toHaveLength(1);
-    expect(second.body.opportunities[0].confidenceScore).toBe(
-      first.body.opportunities[0].confidenceScore,
-    );
+
+    // Compare only the scoring-relevant fields, not the whole object:
+    // upsertBatch's ON CONFLICT DO UPDATE legitimately sets updated_at =
+    // now() on every re-analyze, so a whole-object toEqual would fail on
+    // updatedAt alone — a false failure, since the timestamp changing on
+    // re-upsert is correct behavior, not a scoring defect.
+    const pick = (o: {
+      confidenceScore: number;
+      reasons: string[];
+      factors: unknown;
+      weightsVersion: string;
+    }) => ({
+      confidenceScore: o.confidenceScore,
+      reasons: o.reasons,
+      factors: o.factors,
+      weightsVersion: o.weightsVersion,
+    });
+    expect(second.body.opportunities.map(pick)).toEqual(first.body.opportunities.map(pick));
   });
 });
 

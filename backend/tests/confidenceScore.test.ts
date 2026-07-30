@@ -52,4 +52,61 @@ describe("scoreSignal", () => {
     expect(score).toBeLessThanOrEqual(1);
     expect(score).toBe(1);
   });
+
+  it("is idempotent: the same signal always produces the same score and factor breakdown", () => {
+    const signal = { ...BASE_SIGNAL, daysOpen: 24, isRepost: true, hasSalaryRange: false };
+
+    expect(scoreSignal(signal)).toEqual(scoreSignal(signal));
+  });
+
+  it("always includes all four factors in a fixed order, even when a contribution is zero", () => {
+    const { factors } = scoreSignal(BASE_SIGNAL); // not a repost, has a salary range
+
+    expect(factors.map((f) => f.factor)).toEqual([
+      "baseScore",
+      "daysOpen",
+      "repostedRole",
+      "missingSalaryRange",
+    ]);
+
+    const repostedRole = factors.find((f) => f.factor === "repostedRole")!;
+    expect(repostedRole.value).toBe(0);
+    expect(repostedRole.contribution).toBe(0);
+
+    const missingSalaryRange = factors.find((f) => f.factor === "missingSalaryRange")!;
+    expect(missingSalaryRange.value).toBe(0);
+    expect(missingSalaryRange.contribution).toBe(0);
+  });
+
+  it("reports each factor's configured weight alongside its value and contribution", () => {
+    const { factors } = scoreSignal({ ...BASE_SIGNAL, isRepost: true, hasSalaryRange: false });
+
+    const repostedRole = factors.find((f) => f.factor === "repostedRole")!;
+    expect(repostedRole.weight).toBe(0.32);
+    expect(repostedRole.value).toBe(1);
+    expect(repostedRole.contribution).toBe(0.32);
+
+    const missingSalaryRange = factors.find((f) => f.factor === "missingSalaryRange")!;
+    expect(missingSalaryRange.weight).toBe(0.16);
+    expect(missingSalaryRange.value).toBe(1);
+    expect(missingSalaryRange.contribution).toBe(0.16);
+  });
+
+  it("the factor contributions sum to exactly the returned score", () => {
+    const { score, factors } = scoreSignal({
+      ...BASE_SIGNAL,
+      daysOpen: 24,
+      isRepost: true,
+      hasSalaryRange: false,
+    });
+
+    const total = Math.round(factors.reduce((sum, f) => sum + f.contribution, 0) * 1000) / 1000;
+    expect(total).toBe(score);
+  });
+
+  it("stamps every result with the current confidence weights version", () => {
+    const { weightsVersion } = scoreSignal(BASE_SIGNAL);
+    expect(typeof weightsVersion).toBe("string");
+    expect(weightsVersion.length).toBeGreaterThan(0);
+  });
 });

@@ -5,6 +5,11 @@
  * scattered across the scoring code.
  */
 export const CONFIDENCE_CONFIG = {
+  // Bumped by hand whenever the weights below actually change — see
+  // 06_decisions/012. Every stored opportunity stamps this value so an old
+  // score stays traceable to the weights that produced it even after this
+  // string changes.
+  version: "confidence-007-v1",
   // Any confirmed posting starts here — a posting existing at all is
   // evidence a company is spending money to hire, never zero evidence.
   baseScore: 0.2,

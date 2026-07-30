@@ -70,6 +70,56 @@ describe("OpportunitiesList", () => {
     expect(items[1]).toHaveTextContent("Low Co");
   });
 
+  it("shows the factor breakdown and weights version for a scored opportunity (S-07 trust scenario)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const withBreakdown = {
+      ...OPPORTUNITY,
+      weightsVersion: "confidence-007-v1",
+      factors: [
+        { factor: "baseScore", weight: 0.2, value: 1, contribution: 0.2 },
+        { factor: "daysOpen", weight: 0.32, value: 0.8, contribution: 0.256 },
+        { factor: "repostedRole", weight: 0.32, value: 1, contribution: 0.32 },
+        { factor: "missingSalaryRange", weight: 0.16, value: 1, contribution: 0.16 },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [withBreakdown] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    const item = screen.getByText("Acme Corp").closest("li");
+    expect(item).toHaveTextContent("weights confidence-007-v1");
+    expect(item).toHaveTextContent("baseScore: weight 0.2, value 1, contributes 0.2");
+    expect(item).toHaveTextContent("repostedRole: weight 0.32, value 1, contributes 0.32");
+  });
+
+  it("shows an explicit fallback instead of a blank breakdown for a pre-S-07 opportunity", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        // No factors/weightsVersion at all — the shape a backfilled,
+        // pre-S-07 row (or the old API response) would have.
+        json: async () => ({ opportunities: [OPPORTUNITY] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    const item = screen.getByText("Acme Corp").closest("li");
+    expect(item).toHaveTextContent("No factor breakdown recorded (scored before S-07).");
+  });
+
   it("shows an unauthenticated message when the stored token is rejected", async () => {
     localStorage.setItem("ts_token", "expired-or-invalid");
     vi.stubGlobal(
