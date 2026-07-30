@@ -11,12 +11,15 @@ import { clientsRouter } from "./routes/clients";
 import { candidatesRouter } from "./routes/candidates";
 import { jobOpeningsRouter } from "./routes/jobOpenings";
 import { clientMatchmakingRouter } from "./routes/clientMatchmaking";
+import { salesPipelineRouter } from "./routes/salesPipeline";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
+import { LoggingPipelineNotifier, type PipelineNotifier } from "./adapters/pipelineNotifier";
 
 export function createApp(
   pool: Pool,
   marketSignalProvider: MarketSignalProvider,
   options?: { providerTimeoutMs?: number },
+  notifier: PipelineNotifier = new LoggingPipelineNotifier(),
 ): Express {
   const app = express();
 
@@ -36,6 +39,7 @@ export function createApp(
   app.use("/api", candidatesRouter(pool));
   app.use("/api", jobOpeningsRouter(pool));
   app.use("/api", clientMatchmakingRouter(pool));
+  app.use("/api", salesPipelineRouter(pool, notifier));
 
   return app;
 }

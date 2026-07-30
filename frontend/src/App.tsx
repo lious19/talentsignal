@@ -6,6 +6,7 @@ import { ClientsScreen } from "./ClientsScreen";
 import { CandidatesScreen } from "./CandidatesScreen";
 import { JobOpeningsScreen } from "./JobOpeningsScreen";
 import { MatchScreen } from "./MatchScreen";
+import { SalesPipelineBoard } from "./SalesPipelineBoard";
 import { clearStoredToken, getStoredToken } from "./auth";
 
 type HealthState =
@@ -69,6 +70,7 @@ export function App() {
           <CandidatesScreen />
           <JobOpeningsScreen />
           <MatchScreen />
+          <SalesPipelineBoard />
         </>
       ) : authView === "login" ? (
         <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />

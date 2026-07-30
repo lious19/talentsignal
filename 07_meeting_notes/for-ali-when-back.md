@@ -38,3 +38,19 @@ blocks building, but each needs his eventual sign-off.
    Gate 3 Aug 11 but R4 runs to Aug 21. Which is authoritative?
 10. **Deploy credentials / hosting for talentsignal-demo.colaberry.dev** — who provisions it,
     and do I have access? Needed well before S-20.
+
+## Decisions made in his absence, S-08
+11. **Append-only audit enforcement, concurrency fix, and an erasure exemption
+    (decision 013).** Enforced by a DB trigger, not REVOKE — this deployment's one
+    Postgres role is a superuser and this table's owner, so REVOKE would be silent dead
+    code. Also closed a race where two concurrent enrollments of the same brand-new
+    client could both write an inaccurate `from_stage: null` audit row, via a
+    transaction-scoped advisory lock. And: `sales_pipeline_audit.changed_by` identifies
+    a staff member (personal data under GDPR/CCPA) but is registered as
+    `retain_exempt` in `pii_fields` — audit trails are a standard exemption from
+    erasure, not a gap. Flagging so S-15 treats this as a ratified exemption, not
+    something it discovers and has to resolve itself.
+12. **Pipeline stage transitions are freeform, not a forced sequence (decision 014).**
+    Any stage can move to any other, including backward. Confirm this matches the
+    sales process he had in mind, or tell me which reversals (if any) should be
+    blocked.
