@@ -55,3 +55,5 @@ The observation that should make us revisit it.
 | 017 | Relationship edge model: no client_contacts table, undirected, whole-graph search, company-name anchor match | S-10 | soft |
 | 018 | Relationship path confidence weights (strong=0.8/weak=0.4, hop penalty=0.6, proposal drafted, awaiting Ali) | S-10 | soft |
 | 019 | Recommendation feedback: upsert-latest vs. append-only history, given TBI's "over time" language | S-11 | **hard — ask Ali** |
+| 020 | Analytics KPI definitions (placements/time-to-hire/demand score) — proposed, pending Ali | S-12 | **hard — ask Ali** |
+| 020 | **No Analytics table built — DEVIATES from Ali's build note, which explicitly asked for one.** Computed on the fly instead. Reversible if he wants the table. | S-12 | **hard — ask Ali, veto-able at the gate** |

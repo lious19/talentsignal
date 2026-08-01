@@ -10,6 +10,7 @@ import { SalesPipelineBoard } from "./SalesPipelineBoard";
 import { PackageReviewScreen } from "./PackageReviewScreen";
 import { RelationshipsPanel } from "./RelationshipsPanel";
 import { RecommendationScreen } from "./RecommendationScreen";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { clearStoredToken, getStoredToken } from "./auth";
 
 type HealthState =
@@ -77,6 +78,7 @@ export function App() {
           <PackageReviewScreen />
           <RelationshipsPanel />
           <RecommendationScreen />
+          <AnalyticsDashboard />
         </>
       ) : authView === "login" ? (
         <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />

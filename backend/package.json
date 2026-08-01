@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
