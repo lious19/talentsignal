@@ -72,3 +72,24 @@ blocks building, but each needs his eventual sign-off.
     design change. Also: `opportunity_package_release_audit.released_by` and
     `opportunity_packages.released_by` are both registered `retain_exempt` already,
     mirroring 013 — that part isn't in question, just the `content` column.
+
+## Decisions made in his absence, S-10
+15. **Relationship edge model, search scope, and the opportunity to client anchor
+    (decision 017).** No new `client_contacts` table — edges connect `users` and
+    `clients` only, the two entities that already have real ids; a "client contact" is
+    company-level for now. Edges are stored undirected. Path search spans the whole
+    agency's relationship graph, not just the calling rep's own edges — "ask Jordan,
+    not you" is the point. Anchoring an opportunity to a client hits the SAME no-FK gap
+    as 015 (opportunities have no `client_id`), resolved differently here because the
+    route's contract leaves no room for a caller-supplied id: a case-insensitive exact
+    match on `company`/`clients.name`. No fuzzy matching — a naming mismatch silently
+    surfaces zero relationships. Worth resolving alongside 015 if a future story
+    properly links opportunities to clients.
+16. **Relationship path confidence weights, and why confirm/dismiss isn't an audit
+    table (decision 018).** `strong`=0.8/`weak`=0.4 per edge, multiplicative
+    combination, 0.6 penalty per hop beyond the first — PROPOSED, same style as 011/016.
+    `relationship_path_decisions` is a plain mutable table, not append-only like
+    S-08/S-09's audit tables: S-10's trust scenario only asks for a recorded
+    confirmed/dismissed state, not a history of every flip-flop, and unlike S-09's
+    release, a decision is reversible (it only gates an internal signal, nothing
+    currently leaves the platform on it either way).

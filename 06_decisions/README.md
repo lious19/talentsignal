@@ -52,3 +52,5 @@ The observation that should make us revisit it.
 | 015 | Opportunity↔job linkage: require both ids explicitly, proposal drafted, awaiting Ali | S-09 | soft |
 | 015 | Erasure strategy for a RELEASED package's `content` — reset_to_empty vs. retain, needs Ali + possibly a small S-15 design change | S-09 | **hard — ask Ali** |
 | 016 | Package top-candidate count (N=3, proposal drafted, awaiting Ali) | S-09 | soft |
+| 017 | Relationship edge model: no client_contacts table, undirected, whole-graph search, company-name anchor match | S-10 | soft |
+| 018 | Relationship path confidence weights (strong=0.8/weak=0.4, hop penalty=0.6, proposal drafted, awaiting Ali) | S-10 | soft |
