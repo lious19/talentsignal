@@ -36,7 +36,12 @@ export function authRouter(pool: Pool): Router {
     legacyHeaders: false,
     message: { error: "too many attempts, try again later" },
   });
-  router.use(authRateLimit);
+  // Scoped to "/auth" (i.e. /api/auth/*), not the whole router: this
+  // authRouter is mounted at the "/api" prefix in app.ts, so an unscoped
+  // router.use(authRateLimit) here would silently rate-limit every /api/*
+  // request in the app, not just login/register. Proven by
+  // auth.rateLimit.test.ts's "does not rate-limit a non-auth route" case.
+  router.use("/auth", authRateLimit);
 
   router.post("/auth/register", async (req, res) => {
     const email =

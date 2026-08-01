@@ -33,4 +33,26 @@ describe("auth rate limiting", () => {
 
     expect(res.status).toBe(401);
   });
+
+  // Regression test for the bug reported after S-09's manual smoke test:
+  // authRateLimit was mounted via router.use(authRateLimit) with no path
+  // filter, and authRouter is itself mounted at the "/api" prefix in app.ts —
+  // so the limiter silently applied to every /api/* request, not just
+  // login/register. A couple of page reloads could exhaust the whole app's
+  // budget. GET /api/clients never touches the pool when unauthenticated
+  // (requireAuth 401s first), so this stays 401 on every attempt if scoping
+  // is correct — a stray 429 anywhere in the 11 responses means the limiter
+  // has leaked outside "/auth" again.
+  it("does not rate-limit a non-auth route after 10+ rapid requests", async () => {
+    const { pool } = createFakeUsersPool();
+    const app = createApp(pool, noopProvider);
+    const attempt = () => request(app).get("/api/clients");
+
+    const responses = [];
+    for (let i = 0; i < 11; i++) {
+      responses.push(await attempt());
+    }
+
+    expect(responses.map((r) => r.status)).toEqual(Array(11).fill(401));
+  });
 });
