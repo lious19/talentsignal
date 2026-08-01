@@ -93,3 +93,19 @@ blocks building, but each needs his eventual sign-off.
     confirmed/dismissed state, not a history of every flip-flop, and unlike S-09's
     release, a decision is reversible (it only gates an internal signal, nothing
     currently leaves the platform on it either way).
+
+## Decisions made in his absence, S-11
+17. **Recommendation feedback keying and scope (decision 019).** Keyed by (job,
+    candidate, recruiter) as the story itself specifies — logged formally, not really an
+    open question. `/recommend` shows only the calling recruiter's own mark, not a
+    cross-recruiter aggregate nobody asked for.
+18. **Open question — does "check for and correct bias OVER TIME" mean feedback needs a
+    history, not just the latest mark?** The current design upserts one row per
+    (job, candidate, recruiter) — a reversal overwrites the earlier mark, it doesn't keep
+    it. That satisfies the literal "feedback is stored" acceptance criterion, but if bias
+    analysis eventually needs to see HOW a recruiter's judgment changed over time (not
+    just where it landed), an upsert-only table can't answer that — the earlier value is
+    gone. Deliberately not built now (S-11 is a "should," asked to bank a signal, not
+    build analysis tooling) — flagged as a real open question rather than guessed at. If
+    yes, the fix is additive: an append-only `recommendation_feedback_events` table
+    alongside the existing one, same split as `sales_pipeline`/`sales_pipeline_audit`.

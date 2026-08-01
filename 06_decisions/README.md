@@ -54,3 +54,4 @@ The observation that should make us revisit it.
 | 016 | Package top-candidate count (N=3, proposal drafted, awaiting Ali) | S-09 | soft |
 | 017 | Relationship edge model: no client_contacts table, undirected, whole-graph search, company-name anchor match | S-10 | soft |
 | 018 | Relationship path confidence weights (strong=0.8/weak=0.4, hop penalty=0.6, proposal drafted, awaiting Ali) | S-10 | soft |
+| 019 | Recommendation feedback: upsert-latest vs. append-only history, given TBI's "over time" language | S-11 | **hard — ask Ali** |
