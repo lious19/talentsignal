@@ -49,3 +49,6 @@ The observation that should make us revisit it.
 | — | Field-level vs whole-record PII gating (see 009) — decided with Megan, not yet Ali | S-05 | soft |
 | — | Is REQ-017's p95 exempt for auth endpoints? (see 006) | S-02 | soft |
 | — | JWT storage: localStorage now, revisit at S-20 if origin topology makes an httpOnly cookie cheap (see 008) | S-02/S-20 | soft |
+| 015 | Opportunity↔job linkage: require both ids explicitly, proposal drafted, awaiting Ali | S-09 | soft |
+| 015 | Erasure strategy for a RELEASED package's `content` — reset_to_empty vs. retain, needs Ali + possibly a small S-15 design change | S-09 | **hard — ask Ali** |
+| 016 | Package top-candidate count (N=3, proposal drafted, awaiting Ali) | S-09 | soft |

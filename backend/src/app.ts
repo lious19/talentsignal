@@ -12,6 +12,7 @@ import { candidatesRouter } from "./routes/candidates";
 import { jobOpeningsRouter } from "./routes/jobOpenings";
 import { clientMatchmakingRouter } from "./routes/clientMatchmaking";
 import { salesPipelineRouter } from "./routes/salesPipeline";
+import { opportunityPackageRouter } from "./routes/opportunityPackage";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
 import { LoggingPipelineNotifier, type PipelineNotifier } from "./adapters/pipelineNotifier";
 
@@ -40,6 +41,7 @@ export function createApp(
   app.use("/api", jobOpeningsRouter(pool));
   app.use("/api", clientMatchmakingRouter(pool));
   app.use("/api", salesPipelineRouter(pool, notifier));
+  app.use("/api", opportunityPackageRouter(pool));
 
   return app;
 }

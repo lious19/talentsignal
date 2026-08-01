@@ -54,3 +54,21 @@ blocks building, but each needs his eventual sign-off.
     Any stage can move to any other, including backward. Confirm this matches the
     sales process he had in mind, or tell me which reversals (if any) should be
     blocked.
+
+## Decisions made in his absence, S-09
+13. **Opportunity ↔ job-opening linkage, and top-candidate count (decisions 015, 016).**
+    `opportunities` (market signals) and `job_openings` (platform data) have no FK
+    relating them, so `POST /opportunity-package/draft` requires both `opportunityId`
+    and `jobOpeningId` explicitly rather than inventing a link that doesn't reflect how
+    SignalAgent and reps actually produce data. Packages carry the top 3 ranked
+    candidates (PROPOSED, config constant, easy to change).
+14. **Open S-15 question — erasure of a RELEASED package's content.** A drafted
+    package's `content` (embeds a candidate's name) is `reset_to_empty` on erasure,
+    same as any other PII column. But a *released* package is a record of a human
+    decision, not disposable AI output — Ali may want it retained instead, the same way
+    `sales_pipeline_audit.changed_by` is `retain_exempt` (decision 013). Not decided;
+    flagging because a status-dependent erasure strategy is more than S-15's current
+    per-column `pii_fields` model supports, so his answer may also shape a small S-15
+    design change. Also: `opportunity_package_release_audit.released_by` and
+    `opportunity_packages.released_by` are both registered `retain_exempt` already,
+    mirroring 013 — that part isn't in question, just the `content` column.
