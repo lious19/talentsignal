@@ -8,58 +8,41 @@
   :root{
     --bg:#07060f; --bg2:#0d0a1f;
     --cyan:#00f0ff; --pink:#ff2a6d; --purple:#b14aed; --lime:#c6ff00; --amber:#ffb400;
-    --ink:#eaf6ff; --mute:#8a93b8; --line:#251b45;
-    --panel:rgba(20,14,45,.66);
+    --ink:#eaf6ff; --mute:#8a93b8; --line:#251b45; --panel:rgba(20,14,45,.66);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    color:var(--ink); background:var(--bg); overflow:hidden;
-  }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); overflow:hidden;}
   .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
   #deck{position:relative; width:100vw; height:100vh;}
-  /* animated grid + glow backdrop */
-  #deck::before{
-    content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
-    background:
-      radial-gradient(circle at 15% 12%, rgba(177,74,237,.20), transparent 42%),
+  #deck::before{content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 15% 12%, rgba(177,74,237,.20), transparent 42%),
       radial-gradient(circle at 85% 88%, rgba(0,240,255,.16), transparent 46%),
-      linear-gradient(var(--bg2), var(--bg));
-  }
-  #deck::after{
-    content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
-    background-image:
-      linear-gradient(rgba(0,240,255,.06) 1px, transparent 1px),
+      linear-gradient(var(--bg2), var(--bg));}
+  #deck::after{content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:linear-gradient(rgba(0,240,255,.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,240,255,.06) 1px, transparent 1px);
     background-size:44px 44px;
     -webkit-mask-image:linear-gradient(transparent, #000 40%, #000 70%, transparent);
-            mask-image:linear-gradient(transparent, #000 40%, #000 70%, transparent);
-  }
-  .slide{
-    position:absolute; inset:0; z-index:1; display:none; flex-direction:column;
-    padding:6vh 8vw 10vh;
-  }
+            mask-image:linear-gradient(transparent, #000 40%, #000 70%, transparent);}
+  .slide{position:absolute; inset:0; z-index:1; display:none; flex-direction:column; padding:6vh 8vw 10vh;}
   .slide.active{display:flex; animation:fade .45s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
-  .kick{
-    font-family:ui-monospace,Menlo,monospace; font-size:clamp(11px,1vw,14px); letter-spacing:.32em;
-    text-transform:uppercase; color:var(--cyan); margin-bottom:1.2em;
-    text-shadow:0 0 14px rgba(0,240,255,.6);
-  }
+  .kick{font-family:ui-monospace,Menlo,monospace; font-size:clamp(11px,1vw,14px); letter-spacing:.32em;
+    text-transform:uppercase; color:var(--cyan); margin-bottom:1.2em; text-shadow:0 0 14px rgba(0,240,255,.6);}
   .kick .rel{color:var(--pink); text-shadow:0 0 14px rgba(255,42,109,.6);}
   h1{font-size:clamp(34px,6vw,84px); line-height:1.02; letter-spacing:-.02em; font-weight:800;}
   h1 .glow{color:var(--cyan); text-shadow:0 0 26px rgba(0,240,255,.55), 0 0 60px rgba(0,240,255,.25);}
   h1 .glowp{color:var(--pink); text-shadow:0 0 26px rgba(255,42,109,.55);}
-  h2{font-size:clamp(26px,3.8vw,52px); line-height:1.08; letter-spacing:-.015em; font-weight:750; margin-bottom:.5em;}
+  h2{font-size:clamp(26px,3.9vw,54px); line-height:1.08; letter-spacing:-.015em; font-weight:750; margin-bottom:.5em;}
   h2 .u{border-bottom:3px solid var(--pink); padding-bottom:.05em;}
-  p,li{font-size:clamp(15px,1.65vw,25px); line-height:1.5; color:var(--ink);}
-  .lede{font-size:clamp(18px,2.2vw,32px); color:var(--mute); line-height:1.4;}
+  p,li{font-size:clamp(15px,1.7vw,26px); line-height:1.5; color:var(--ink);}
+  .lede{font-size:clamp(19px,2.3vw,34px); color:var(--mute); line-height:1.4;}
+  .huge{font-size:clamp(26px,4vw,58px); font-weight:800; letter-spacing:-.02em; line-height:1.16;}
   .big{font-size:clamp(24px,3.4vw,50px); font-weight:800; letter-spacing:-.02em; line-height:1.15;}
-  .analogy{
-    border-left:3px solid var(--lime); padding:.55em 0 .55em 1em; margin:.6em 0;
-    background:linear-gradient(90deg, rgba(198,255,0,.06), transparent);
-  }
+  .analogy{border-left:3px solid var(--lime); padding:.55em 0 .55em 1em; margin:.6em 0;
+    background:linear-gradient(90deg, rgba(198,255,0,.06), transparent);}
   .analogy .tag{font-family:ui-monospace,monospace; font-size:.7em; letter-spacing:.2em; color:var(--lime);
     text-transform:uppercase; display:block; margin-bottom:.25em;}
   .analogy b{color:var(--lime);}
@@ -68,19 +51,14 @@
   li::before{content:"▸"; position:absolute; left:0; color:var(--cyan);}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:1.6em; margin-top:.5em;}
   .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2em; margin-top:.5em;}
-  .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.1em 1.25em;
-    backdrop-filter:blur(6px); box-shadow:0 0 0 1px rgba(0,240,255,.04), 0 18px 50px rgba(0,0,0,.4);
-  }
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.1em 1.25em;
+    backdrop-filter:blur(6px); box-shadow:0 0 0 1px rgba(0,240,255,.04), 0 18px 50px rgba(0,0,0,.4);}
   .card h3{font-size:clamp(15px,1.5vw,22px); margin-bottom:.3em; color:var(--cyan);}
-  .card.pink h3{color:var(--pink);}
-  .card.purple h3{color:var(--purple);}
-  .card.lime h3{color:var(--lime);}
+  .card.pink h3{color:var(--pink);} .card.purple h3{color:var(--purple);} .card.lime h3{color:var(--lime);}
   .card p,.card li{font-size:clamp(13px,1.35vw,18px);}
   .tagrow{display:flex; gap:.6em; flex-wrap:wrap; margin-top:.8em;}
   .chip{font-family:ui-monospace,monospace; font-size:clamp(10px,1vw,13px); letter-spacing:.08em;
-    padding:.35em .8em; border-radius:999px; border:1px solid var(--line); color:var(--mute);
-    background:rgba(0,240,255,.04);}
+    padding:.35em .8em; border-radius:999px; border:1px solid var(--line); color:var(--mute); background:rgba(0,240,255,.04);}
   .chip.on{color:var(--cyan); border-color:rgba(0,240,255,.5); text-shadow:0 0 10px rgba(0,240,255,.5);}
   .chip.done{color:var(--lime); border-color:rgba(198,255,0,.4);}
   .flow{display:flex; align-items:center; gap:.6em; flex-wrap:wrap; margin:1em 0;}
@@ -90,29 +68,24 @@
   .arw{color:var(--pink); font-size:1.5em; text-shadow:0 0 10px rgba(255,42,109,.6);}
   .quote{font-size:clamp(20px,2.9vw,44px); line-height:1.28; font-weight:700; letter-spacing:-.01em;
     border-left:4px solid var(--cyan); padding-left:.7em;}
+  .before{display:grid; grid-template-columns:1fr auto 1fr; gap:1.2em; align-items:center; margin-top:1em;}
+  .ba{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.1em 1.3em;}
+  .ba.b1{border-color:rgba(255,42,109,.35);} .ba.b2{border-color:rgba(198,255,0,.4);}
+  .ba h3{font-size:clamp(13px,1.2vw,17px); font-family:ui-monospace,monospace; letter-spacing:.1em;
+    text-transform:uppercase; margin-bottom:.4em;} .ba.b1 h3{color:var(--pink);} .ba.b2 h3{color:var(--lime);}
   .spacer{flex:1;}
   .center{justify-content:center; align-items:center; text-align:center;}
-  table{border-collapse:collapse; width:100%; margin-top:.5em;}
-  th,td{text-align:left; padding:.5em .7em; border-bottom:1px solid var(--line); font-size:clamp(13px,1.4vw,20px);}
-  th{color:var(--pink); font-family:ui-monospace,monospace; font-size:clamp(10px,1.05vw,14px);
-     letter-spacing:.1em; text-transform:uppercase;}
-  td .mono{color:var(--cyan);}
   footer{position:absolute; left:8vw; right:8vw; bottom:3.4vh; z-index:2;
     display:flex; justify-content:space-between; align-items:center; color:var(--mute);
-    font-family:ui-monospace,monospace; font-size:clamp(10px,.95vw,13px);
-    border-top:1px solid var(--line); padding-top:.7em;}
+    font-family:ui-monospace,monospace; font-size:clamp(10px,.95vw,13px); border-top:1px solid var(--line); padding-top:.7em;}
   #bar{position:absolute; top:0; left:0; height:3px; z-index:3;
     background:linear-gradient(90deg,var(--cyan),var(--pink)); box-shadow:0 0 12px var(--cyan); transition:width .25s;}
-  #notes{position:fixed; left:0; right:0; bottom:0; z-index:5; max-height:40vh; overflow:auto;
-    background:rgba(6,4,14,.96); color:#dfe9ff; padding:1.1em 8vw; display:none;
-    font-size:15px; line-height:1.55; border-top:2px solid var(--pink);}
-  #notes.show{display:block;}
-  #notes b{color:var(--cyan);}
+  #notes{position:fixed; left:0; right:0; bottom:0; z-index:5; max-height:42vh; overflow:auto;
+    background:rgba(6,4,14,.96); color:#dfe9ff; padding:1.1em 8vw; display:none; font-size:15px; line-height:1.55; border-top:2px solid var(--pink);}
+  #notes.show{display:block;} #notes b{color:var(--cyan);}
   #help{position:fixed; right:12px; bottom:10px; z-index:6; font-family:ui-monospace,monospace;
-    font-size:11px; color:var(--mute); background:rgba(6,4,14,.8); padding:.4em .7em;
-    border:1px solid var(--line); border-radius:6px;}
-  @media print{ body{overflow:visible;} .slide{display:flex !important; position:relative; height:100vh;
-    page-break-after:always;} #notes,#help,#bar{display:none !important;} }
+    font-size:11px; color:var(--mute); background:rgba(6,4,14,.8); padding:.4em .7em; border:1px solid var(--line); border-radius:6px;}
+  @media print{ body{overflow:visible;} .slide{display:flex !important; position:relative; height:100vh; page-break-after:always;} #notes,#help,#bar{display:none !important;} }
 </style>
 </head>
 <body>
@@ -120,202 +93,164 @@
 <div id="deck">
 
 <!-- 1 TITLE -->
-<section class="slide active center" data-notes="Open with energy. This is the whole project in one deck. Say: 'TalentSignal helps a staffing agency see demand before anyone else does, and it does it with a strict rule — the AI drafts, a human decides.' That one sentence is the thesis.">
-  <div class="kick">Colaberry Internship &nbsp;//&nbsp; Built with Claude Code &nbsp;//&nbsp; <span class="rel">R0 → R3</span></div>
+<section class="slide active center" data-notes="DON'T rush. Read the subtitle out loud slowly. Say: 'Before I show you anything I built, let me explain in plain words what this project even is — because it only makes sense once you know the problem it solves.' That sentence buys you the room's patience.">
+  <div class="kick">Colaberry Internship &nbsp;//&nbsp; Megan Dimiyo-Mbenoun</div>
   <h1><span class="glow">TalentSignal</span><br>Revenue <span class="glowp">Engine</span></h1>
-  <p class="lede" style="margin-top:1em">Find the demand before the client asks.<br>The AI drafts — a human always owns the send.</p>
-  <div class="tagrow" style="justify-content:center; margin-top:2em">
-    <span class="chip done">R0 skeleton</span><span class="chip done">R1 intelligence</span>
-    <span class="chip done">R2 human-in-the-loop</span><span class="chip on">R3 analytics ▸ started</span>
-  </div>
-  <p class="mono" style="color:var(--mute); margin-top:2em; font-size:14px">Megan Dimiyo-Mbenoun · 12 of 20 stories shipped</p>
+  <p class="lede" style="margin-top:1.1em">Let me start with the simplest question:<br><span style="color:var(--ink)">what is this, and who is it for?</span></p>
 </section>
 
-<!-- 2 THE PROBLEM -->
-<section class="slide" data-notes="Keep this to ~40 seconds. The word that matters is LAST. A staffing agency is a matchmaker between companies that need workers and people who need jobs. Today they hear about a need only when the client announces it — and by then three rivals heard it too.">
-  <div class="kick">The problem</div>
-  <h2>Staffing agencies find out <span class="u">last</span></h2>
-  <div class="analogy">
+<!-- 2 WHAT IS A STAFFING AGENCY -->
+<section class="slide" data-notes="Slide slowly. Ask the room: 'Do you know what a staffing agency does?' Then answer simply. This is the ground floor — everyone must be with you here before you go further.">
+  <div class="kick">Start here · who this is for</div>
+  <h2>First — what&rsquo;s a <span class="u">staffing agency</span>?</h2>
+  <p class="lede">A company whose whole job is connecting <span style="color:var(--cyan)">businesses that need workers</span> with <span style="color:var(--pink)">people looking for jobs</span>.</p>
+  <div class="analogy" style="margin-top:1em">
     <span class="tag">Think of it like</span>
-    A staffing agency is a <b>matchmaker</b> — it connects companies that need workers with people who need jobs.
+    A <b>dating app, but for jobs</b> — it matches companies that need people with people who need work.
   </div>
-  <p class="lede" style="margin-top:.6em">Right now a salesperson learns a company needs people only when that company <em>announces</em> it — a job posting, a call around. By then three rival agencies got the same signal, and it's a price war.</p>
   <div class="spacer"></div>
-  <p class="big"><span class="glow">TalentSignal spots the demand first</span> — while the conversation is still warm and uncrowded.</p>
-  <footer><span>The problem</span><span>02</span></footer>
+  <p class="lede">They make money every time they successfully place someone in a job.</p>
+  <footer><span>What is a staffing agency</span><span>02</span></footer>
 </section>
 
-<!-- 3 THE WHOLE MACHINE -->
-<section class="slide" data-notes="This is the product arc — the spine. Walk left to right once. Every release adds one organ to this body. Point out that the LAST box (release) is the human gate — nothing leaves without a person clicking.">
-  <div class="kick">The whole machine</div>
-  <h2>One pipeline, end to end</h2>
+<!-- 3 THE PROBLEM -->
+<section class="slide" data-notes="This is the WHY. The single word that matters is 'last'. Slow down on it. If the room feels this problem, everything after it lands.">
+  <div class="kick">Their painful problem</div>
+  <h2>They always find out <span class="u">last</span></h2>
+  <p class="lede">Today, an agency learns a company needs staff only when that company <em>posts the job publicly</em>.</p>
+  <p class="lede" style="margin-top:.7em">By then, <span style="color:var(--pink)">every rival agency sees the same posting</span> — and they all fight over the same opening, competing on price.</p>
+  <div class="spacer"></div>
+  <p class="big">The agency that hears about it <span class="glowp" style="color:var(--pink)">first</span> wins the deal.</p>
+  <footer><span>The problem</span><span>03</span></footer>
+</section>
+
+<!-- 4 WHAT WE BUILT (one sentence) -->
+<section class="slide center" data-notes="THE sentence. Say it once, clearly, then pause. This is the whole project in one line. If they remember nothing else, they should remember this.">
+  <div class="kick">So — what I built</div>
+  <p class="huge">A tool that spots which companies are<br><span class="glow">about to need to hire</span><br>— <span style="color:var(--mute)">before they even post the job</span> —<br>so the agency can reach out <span class="glowp" style="color:var(--pink)">first</span>.</p>
+  <footer><span>What TalentSignal is</span><span>04</span></footer>
+</section>
+
+<!-- 5 BEFORE / AFTER -->
+<section class="slide" data-notes="Make the value concrete with the before/after. This is what the salesperson's day looks like with vs without the tool. Everyday and human — no tech yet.">
+  <div class="kick">Why it matters</div>
+  <h2>Cold call &rarr; <span class="u">warm, early call</span></h2>
+  <div class="before">
+    <div class="ba b1"><h3>Without it</h3><p>You see a public job posting. So did five rivals. You cold-call and compete on price.</p></div>
+    <div class="arw" style="font-size:2em">→</div>
+    <div class="ba b2"><h3>With TalentSignal</h3><p>You get an early heads-up before the posting. You call first, warm, while it&rsquo;s still uncrowded.</p></div>
+  </div>
+  <div class="analogy" style="margin-top:1.2em">
+    <span class="tag">Think of it like</span>
+    Noticing a friend seems <b>off and quiet</b> before they&rsquo;ve said anything is wrong — you read the early signs instead of waiting to be told.
+  </div>
+  <footer><span>The value</span><span>05</span></footer>
+</section>
+
+<!-- 6 THE ONE RULE -->
+<section class="slide" data-notes="This is your HOOK and your differentiator. Say the line slowly: the AI does the typing, a human owns the send. This is what makes the project special and safe.">
+  <div class="kick">The one rule that runs everything</div>
+  <h2>The AI drafts. A <span class="u">human</span> sends.</h2>
+  <p class="lede">The tool can suggest, score, and even write the outreach message — but it can <span style="color:var(--pink)">never send anything on its own</span>. A person always reviews and approves first.</p>
+  <div class="analogy" style="margin-top:1em">
+    <span class="tag">Think of it like</span>
+    Your <b>phone suggesting a text message</b> — it writes the words, but nothing is sent until <i>you</i> press send.
+  </div>
+  <div class="spacer"></div>
+  <p class="quote">The AI does the typing.<br>A human always owns the send.</p>
+  <footer><span>Trust before intelligence</span><span>06</span></footer>
+</section>
+
+<!-- 7 THE WHOLE MACHINE -->
+<section class="slide" data-notes="NOW they have context, so the flow makes sense. Walk left to right once, slowly, in plain words. End on the pink box: a human releases.">
+  <div class="kick">How it works · start to finish</div>
+  <h2>One path, six steps</h2>
   <div class="flow">
-    <div class="node">📡 Signal</div><span class="arw">→</span>
-    <div class="node">🔍 Hidden demand</div><span class="arw">→</span>
-    <div class="node">🎯 Match talent</div><span class="arw">→</span>
-    <div class="node">📊 Score</div><span class="arw">→</span>
-    <div class="node">📋 Pipeline</div><span class="arw">→</span>
-    <div class="node p">✋ Human releases</div>
+    <div class="node">📡 A signal</div><span class="arw">→</span>
+    <div class="node">🔍 Spot demand</div><span class="arw">→</span>
+    <div class="node">🎯 Match people</div><span class="arw">→</span>
+    <div class="node">📊 Score it</div><span class="arw">→</span>
+    <div class="node">📋 Track it</div><span class="arw">→</span>
+    <div class="node p">✋ Human sends</div>
   </div>
-  <p class="lede" style="margin-top:.8em">A market signal comes in. The platform detects hidden demand, ranks the best-fit candidates, scores the opportunity, tracks it through the sales pipeline — and drafts the outreach. <span style="color:var(--pink)">A human reviews and releases it. Never the machine.</span></p>
-  <div class="analogy">
-    <span class="tag">Think of it like</span>
-    A newsroom: reporters (the AI) write the story, but an <b>editor (a human)</b> decides what actually gets published.
-  </div>
-  <footer><span>Product arc</span><span>03</span></footer>
+  <p class="lede" style="margin-top:.8em">A hint comes in that a company might need people. The tool spots the demand, finds the best-fit candidates, scores how promising it is, tracks it through the sales process, and drafts the outreach. <span style="color:var(--pink)">Then a human reviews and sends. Never the machine.</span></p>
+  <footer><span>The whole machine</span><span>07</span></footer>
 </section>
 
-<!-- 4 THE STACK -->
-<section class="slide" data-notes="Keep this light — it's a credibility slide, not a lecture. It's a REAL full-stack app, not slides. Three layers you can point at. The 'mocked providers' line matters: the outside data is fake, but behind a clean seam so a real feed swaps in with one line.">
-  <div class="kick">Not a mockup — a running product</div>
-  <h2>Real code, three layers</h2>
+<!-- 8 REAL CODE -->
+<section class="slide" data-notes="Quick credibility beat. It's a REAL working app, not slides. Three parts, one everyday picture. Keep it 30 seconds.">
+  <div class="kick">Not a mockup — a real running app</div>
+  <h2>Real, working software</h2>
   <div class="grid3">
-    <div class="card"><h3>⚛ React</h3><p>The front end — every screen a user clicks.</p></div>
-    <div class="card pink"><h3>⚙ Node / Express</h3><p>The API — the brain that computes and decides.</p></div>
-    <div class="card purple"><h3>🗄 PostgreSQL</h3><p>The memory — the system of record.</p></div>
+    <div class="card"><h3>The screen</h3><p>What a user clicks and sees.</p></div>
+    <div class="card pink"><h3>The brain</h3><p>Does the thinking and the deciding.</p></div>
+    <div class="card purple"><h3>The memory</h3><p>Stores everything safely.</p></div>
   </div>
-  <p class="lede" style="margin-top:1.1em">All wired together with Docker, one command to start. Outside data providers are <span style="color:var(--cyan)">mocked behind a clean seam</span> — a real job-board feed swaps in without touching anything else.</p>
-  <div class="analogy">
+  <div class="analogy" style="margin-top:1.1em">
     <span class="tag">Think of it like</span>
-    A car with a <b>real engine on a test bench</b> — the fuel is simulated, but the engine genuinely runs.
+    Learning to drive in an <b>empty parking lot</b> — the car, steering, and brakes are all real; only the outside traffic (the live data) is simulated for now. Plug in the real road later, and the car doesn&rsquo;t change.
   </div>
-  <footer><span>The stack</span><span>04</span></footer>
+  <footer><span>The stack</span><span>08</span></footer>
 </section>
 
-<!-- 5 TRUST BEFORE INTELLIGENCE -->
-<section class="slide" data-notes="This is the soul of the project and your differentiator. Say it slowly: the platform earns the right to be smart by first being safe, transparent, and reversible. Three pillars. Everything else in the deck is an example of one of these.">
-  <div class="kick">The governing rule</div>
-  <h2><span class="glow">Trust</span> Before Intelligence</h2>
-  <p class="lede">The platform earns the right to be smart by first being safe, transparent, and reversible.</p>
-  <div class="grid3" style="margin-top:1.4em">
-    <div class="card lime"><h3>Safe</h3><p>Nothing leaves the platform without an explicit human release. Passwords hashed, never logged.</p></div>
-    <div class="card"><h3>Transparent</h3><p>Every score shows its confidence and the reasons behind it. No black-box numbers.</p></div>
-    <div class="card purple"><h3>Reversible</h3><p>Every important change is written to an append-only trail the database itself protects.</p></div>
-  </div>
-  <p class="quote" style="margin-top:1.3em">The AI drafts and suggests.<br>A human reviews and releases.</p>
-  <footer><span>Trust Before Intelligence</span><span>05</span></footer>
-</section>
-
-<!-- 6 R0 -->
-<section class="slide" data-notes="R0 = the walking skeleton. Anticipate the 'why is it plain?' question here. You build the frame before the rooms. One command starts all three layers and proves they talk. Every request is logged with a trace id from commit one.">
-  <div class="kick"><span class="rel">Release 0</span> &nbsp;// Walking skeleton &nbsp;// S-01 → S-03</div>
-  <h2>First, prove the <span class="u">spine</span> works</h2>
-  <div class="analogy">
-    <span class="tag">Think of it like</span>
-    Building a house: you pour the <b>foundation and frame</b> before painting a single wall. R0 is the frame.
-  </div>
-  <div class="grid3" style="margin-top:1em">
-    <div class="card"><h3>S-01 Skeleton</h3><p>One command starts React + API + database, all talking. Every request traceable.</p></div>
-    <div class="card pink"><h3>S-02 Auth</h3><p>Register &amp; log in. Passwords bcrypt-hashed, tokens expire, nothing leaks.</p></div>
-    <div class="card purple"><h3>S-03 First slice</h3><p>One mocked signal flows all the way to a scored opportunity on screen.</p></div>
-  </div>
-  <p class="lede" style="margin-top:1em">It looks like nothing — and that's the point. Prove every layer talks <em>before</em> building anything on top.</p>
-  <footer><span>R0 · walking skeleton</span><span>06</span></footer>
-</section>
-
-<!-- 7 R1 -->
-<section class="slide" data-notes="R1 = the intelligence. This is where it starts being clever — but transparently. The confidence score is like a doctor weighing symptoms. Matchmaking is skill overlap. Every number comes with its reasons.">
-  <div class="kick"><span class="rel">Release 1</span> &nbsp;// Core intelligence &nbsp;// S-04 → S-07</div>
-  <h2>Now it gets <span class="u">smart</span> — out loud</h2>
+<!-- 9 RELEASES OVERVIEW -->
+<section class="slide" data-notes="Now — and only now — show what you built in stages. Frame it as 'I built it in four safe layers.' Keep each to one line. Say 12 of 20 done, on schedule.">
+  <div class="kick">What I&rsquo;ve built so far</div>
+  <h2>Four layers, built in order</h2>
   <div class="grid2">
-    <div class="card"><h3>🔍 Hidden demand</h3><p>Ranks companies by how likely they secretly need staff — each with a confidence score and the reasons why.</p></div>
-    <div class="card pink"><h3>🎯 Matchmaking</h3><p>Ranks candidates for a job by skill overlap, and shows exactly which skills matched.</p></div>
-    <div class="card purple"><h3>📊 Opportunity scoring</h3><p>One consistent 0–1 score with a full factor breakdown a manager can audit.</p></div>
-    <div class="card lime"><h3>🗂 Clients &amp; candidates</h3><p>The real data model — with personal data tagged for privacy from the very first migration.</p></div>
+    <div class="card lime"><h3>① The foundation</h3><p>Get the basic app running and prove every part talks. Secure login.</p></div>
+    <div class="card"><h3>② The smarts</h3><p>Spot hidden demand, match candidates, score opportunities — always showing the reasons.</p></div>
+    <div class="card pink"><h3>③ Human in charge</h3><p>The sales pipeline, and the AI-drafts / human-sends rule as real code.</p></div>
+    <div class="card purple"><h3>④ The dashboard</h3><p>Manager KPIs — totals and averages only, never private details. (In progress.)</p></div>
   </div>
-  <div class="analogy" style="margin-top:.6em">
-    <span class="tag">Think of it like</span>
-    A <b>doctor weighing symptoms</b> — fever plus cough plus three days is more concern than any one alone. And a good doctor can always explain <em>why</em>.
-  </div>
-  <footer><span>R1 · core intelligence</span><span>07</span></footer>
+  <div class="tagrow" style="margin-top:1em"><span class="chip done">12 of 20 stories done</span><span class="chip on">on schedule</span></div>
+  <footer><span>The four releases</span><span>09</span></footer>
 </section>
 
-<!-- 8 R2 keystone -->
-<section class="slide" data-notes="THE centerpiece. R2 is where the trust philosophy becomes real code. Say the line: the AI does the typing, a human owns the send. Show the flow: draft → a human clicks release → recorded forever. Nothing is actually sent — the release flag IS the boundary.">
-  <div class="kick"><span class="rel">Release 2</span> &nbsp;// Human-in-the-loop &nbsp;// S-08 → S-11</div>
-  <h2>The <span class="glowp" style="color:var(--pink)">keystone</span>: AI drafts, human sends</h2>
-  <div class="flow">
-    <div class="node">🤖 AI drafts a package</div><span class="arw">→</span>
-    <div class="node p">✋ Human clicks “Release”</div><span class="arw">→</span>
-    <div class="node">🔒 Recorded: who + when</div>
-  </div>
-  <p class="lede">The platform composes a tailored outreach package — but it is <span style="color:var(--pink)">stored as a draft, delivered nowhere</span>. Only when a human reviews and clicks release is it marked released, with the actor and timestamp locked in.</p>
-  <div class="analogy">
+<!-- 10 AUDIT -->
+<section class="slide" data-notes="Your proudest technical point, in plain words. The record can't be faked — the database itself refuses to let anyone change it. WhatsApp analogy is your friend here.">
+  <div class="kick">The trust feature I&rsquo;m proudest of</div>
+  <h2>A record that <span class="u">can&rsquo;t be faked</span></h2>
+  <p class="lede">Every important action is written down permanently — who did it, when, and what changed. Nobody, not even an admin, can edit or delete it.</p>
+  <div class="analogy" style="margin-top:1em">
     <span class="tag">Think of it like</span>
-    An assistant who <b>writes the letter</b> and leaves it on your desk. Only <em>you</em> sign it and drop it in the mailbox.
-  </div>
-  <p class="mono" style="color:var(--mute); margin-top:.7em; font-size:14px">+ live sales pipeline · warm-relationship intros · recommendations with a feedback loop</p>
-  <footer><span>R2 · human-in-the-loop</span><span>08</span></footer>
-</section>
-
-<!-- 9 audit trail -->
-<section class="slide" data-notes="This is the trust feature you're proudest of, technically. The audit log is append-only ENFORCED BY THE DATABASE — not by polite code. A trigger rejects any edit or delete, even from an admin. Proven by a test that tries to tamper and watches Postgres refuse.">
-  <div class="kick"><span class="rel">R2</span> &nbsp;// The tamper-proof trail</div>
-  <h2>A diary written in <span class="u">permanent ink</span></h2>
-  <p class="lede">Every pipeline move and every release writes a row to an <span style="color:var(--cyan)">append-only audit log</span> — who did it, when, and what changed.</p>
-  <div class="analogy">
-    <span class="tag">Think of it like</span>
-    A <b>ship's logbook in ink</b> — you can add a new line, but you can never tear out or rewrite a page.
+    A <b>WhatsApp group chat</b> — you can add new messages, but you can never delete or edit the old ones. The history stays exactly as it happened.
   </div>
   <div class="spacer"></div>
-  <p class="big">The database itself <span class="glowp" style="color:var(--pink)">rejects</span> any attempt to edit or delete an audit row — even from an administrator.</p>
-  <p class="mono" style="color:var(--mute); margin-top:.6em; font-size:14px">Proven live: a test fires an UPDATE and a DELETE at the log, and Postgres refuses both.</p>
-  <footer><span>R2 · append-only audit</span><span>09</span></footer>
+  <p class="mono" style="color:var(--mute); font-size:14px">Proven live: a test tries to change and delete a record — the database refuses both times.</p>
+  <footer><span>Tamper-proof record</span><span>10</span></footer>
 </section>
 
-<!-- 10 R3 -->
-<section class="slide" data-notes="R3 has started — S-12, the dashboard. This is the most product-looking screen. The trust angle: aggregates only, never individual PII — you see the crowd, not the faces. Be honest that R3 is in progress; forecasting, access control and compliance are next.">
-  <div class="kick"><span class="rel">Release 3</span> &nbsp;// Analytics, trust &amp; compliance &nbsp;// started</div>
-  <h2>The manager's <span class="u">dashboard</span></h2>
-  <div class="grid3">
-    <div class="card"><h3>📈 Placements / month</h3><p>Counted from the audit trail — real closings, real months.</p></div>
-    <div class="card pink"><h3>⏱ Time-to-hire</h3><p>From entering the pipeline to closing — the audit foundation paying off.</p></div>
-    <div class="card purple"><h3>🔥 Demand score</h3><p>The average confidence across all live opportunities.</p></div>
-  </div>
-  <div class="analogy" style="margin-top:.8em">
-    <span class="tag">Think of it like</span>
-    A <b>crowd photo from above</b> — you can count the crowd, but you can't identify any single face. Aggregates only; no personal data ever reaches the reporting layer.
-  </div>
-  <p class="mono" style="color:var(--mute); margin-top:.5em; font-size:14px">Still ahead in R3: demand forecasting · role-based access · privacy &amp; compliance · anomaly detection</p>
-  <footer><span>R3 · analytics (in progress)</span><span>10</span></footer>
-</section>
-
-<!-- 11 the review story -->
-<section class="slide" data-notes="This is YOUR slide — the answer to 'did you build this or did the AI?'. The AI wrote most of the code; your job was to decide whether it was right. Give a real example: the audit log almost shipped enforced by polite code instead of the database. You caught it.">
-  <div class="kick">The part that's actually mine</div>
-  <h2>My job was <span class="u">review</span></h2>
+<!-- 11 MY JOB -->
+<section class="slide" data-notes="THE slide that answers 'did you build this or did the AI?'. The AI wrote the code; your job was deciding if it was right. Give one concrete catch.">
+  <div class="kick">The part that&rsquo;s actually mine</div>
+  <h2>My job was to <span class="u">check the AI&rsquo;s work</span></h2>
   <p class="quote">The AI wrote most of the code.<br>My job was to decide whether it was right.</p>
-  <div class="grid3" style="margin-top:1.2em">
-    <div class="card pink"><h3>Caught before shipping</h3><p>A cold-start race, a silent logger, a rate limiter that would have frozen the whole app on a page reload.</p></div>
-    <div class="card"><h3>A privilege hole</h3><p>Registration once let anyone make themselves an admin. Caught and closed before it mattered.</p></div>
-    <div class="card lime"><h3>Judgment calls, logged</h3><p>Every business number — scoring weights, KPI definitions — is documented and flagged for the client, never silently invented.</p></div>
-  </div>
+  <p class="lede" style="margin-top:1.1em">It told me a story was &lsquo;done&rsquo; more than once when it wasn&rsquo;t. One example: a safety limit was accidentally applied to the <em>whole app</em> instead of just the login — a couple of page refreshes would have frozen everything, live in a demo. Every test passed; I only caught it by clicking through the real app myself.</p>
   <footer><span>What review caught</span><span>11</span></footer>
 </section>
 
-<!-- 12 honesty -->
-<section class="slide" data-notes="Volunteer your limits before anyone asks — it's the most credible thing you can do. Say each one plainly. Precision about what you HAVEN'T proven is what makes everything you HAVE proven believable.">
-  <div class="kick">What I have not proven</div>
+<!-- 12 HONESTY -->
+<section class="slide" data-notes="Volunteer your limits before anyone asks. Say each plainly. This honesty is what makes everything else believable.">
+  <div class="kick">What I have not proven yet</div>
   <h2>The honest <span class="u">edges</span></h2>
   <ul style="margin-top:.5em">
-    <li><b>The data feed is mocked</b> — real, but behind a seam. Swapping in a live job board is one line.</li>
-    <li><b>The scoring weights are my proposal</b> — reasonable, documented, and waiting on the client's sign-off.</li>
-    <li><b>Access control isn't enforced yet</b> — roles are stored; enforcing them everywhere is the next release.</li>
-    <li><b>Nothing is deployed yet</b> — it runs on my machine. A public URL is the final story.</li>
-    <li><b>Performance is unmeasured at scale</b> — I'll measure honestly, not guess.</li>
+    <li>The outside data is <b>simulated</b> for now — real feed plugs in with one line.</li>
+    <li>The scoring numbers are <b>my proposal</b>, waiting on the client&rsquo;s approval.</li>
+    <li>Full permission rules aren&rsquo;t enforced yet — that&rsquo;s the next release.</li>
+    <li><b>Nothing is online yet</b> — it runs on my machine. Going live is the final step.</li>
   </ul>
   <div class="spacer"></div>
-  <p class="quote">I would rather say “I haven't measured that”<br>than guess in front of you.</p>
+  <p class="quote">I&rsquo;d rather say &ldquo;I haven&rsquo;t tested that&rdquo;<br>than guess in front of you.</p>
   <footer><span>Honest limits</span><span>12</span></footer>
 </section>
 
-<!-- 13 close -->
-<section class="slide center" data-notes="Close with the arc and the number. 12 of 20 done, a real product with a spine, and the trust story as the headline. Then stop and take questions.">
-  <div class="kick">Where it stands</div>
-  <h1 style="font-size:clamp(30px,5vw,68px)"><span class="glow">12 / 20</span> stories<br>shipped &amp; verified</h1>
-  <p class="lede" style="margin-top:1em">A running product that finds hidden demand, ranks talent, runs the pipeline, and drafts outreach a human always releases — with a tamper-proof trail underneath.</p>
-  <p class="big" style="margin-top:1.4em"><span class="glowp" style="color:var(--pink)">Trust first.</span> <span class="glow">Intelligence second.</span></p>
-  <p class="mono" style="color:var(--mute); margin-top:2em; font-size:14px">Next: forecasting · access control · compliance · load-testing · go-live</p>
+<!-- 13 CLOSE -->
+<section class="slide center" data-notes="Close by returning to the simple idea, then the number. Then stop and ask for questions.">
+  <div class="kick">In one line</div>
+  <h1 style="font-size:clamp(28px,4.6vw,64px)">Find the demand <span class="glow">first</span>.<br>The AI drafts — a <span class="glowp" style="color:var(--pink)">human</span> sends.</h1>
+  <p class="lede" style="margin-top:1.2em">A real, working tool that helps a staffing agency reach out before anyone else — safely.</p>
+  <p class="mono" style="color:var(--mute); margin-top:1.6em; font-size:14px">12 of 20 stories shipped &amp; tested · on schedule</p>
 </section>
 
 </div>
