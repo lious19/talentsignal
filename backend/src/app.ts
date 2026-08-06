@@ -16,6 +16,7 @@ import { opportunityPackageRouter } from "./routes/opportunityPackage";
 import { opportunityRelationshipsRouter } from "./routes/opportunityRelationships";
 import { recommendationEngineRouter } from "./routes/recommendationEngine";
 import { analyticsRouter } from "./routes/analytics";
+import { predictiveAnalysisRouter } from "./routes/predictiveAnalysis";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
 import { LoggingPipelineNotifier, type PipelineNotifier } from "./adapters/pipelineNotifier";
 
@@ -48,6 +49,7 @@ export function createApp(
   app.use("/api", opportunityRelationshipsRouter(pool));
   app.use("/api", recommendationEngineRouter(pool));
   app.use("/api", analyticsRouter(pool));
+  app.use("/api", predictiveAnalysisRouter(pool));
 
   return app;
 }
