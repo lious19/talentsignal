@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TalentSignal — 5-Minute Pitch</title>
+<style>
+  :root{
+    --bg:#07060f; --bg2:#0d0a1f;
+    --cyan:#00f0ff; --pink:#ff2a6d; --purple:#b14aed; --lime:#c6ff00;
+    --ink:#eaf6ff; --mute:#8a93b8; --line:#251b45; --panel:rgba(20,14,45,.66);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); overflow:hidden;}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  #deck{position:relative; width:100vw; height:100vh;}
+  #deck::before{content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 15% 12%, rgba(177,74,237,.20), transparent 42%),
+      radial-gradient(circle at 85% 88%, rgba(0,240,255,.16), transparent 46%),
+      linear-gradient(var(--bg2), var(--bg));}
+  #deck::after{content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:linear-gradient(rgba(0,240,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,.06) 1px, transparent 1px);
+    background-size:44px 44px;
+    -webkit-mask-image:linear-gradient(transparent, #000 40%, #000 70%, transparent);
+            mask-image:linear-gradient(transparent, #000 40%, #000 70%, transparent);}
+  .slide{position:absolute; inset:0; z-index:1; display:none; flex-direction:column; padding:6vh 8vw 11vh;}
+  .slide.active{display:flex;}
+  /* PowerPoint-style directional transitions */
+  .slide.enterR{animation:inR .5s cubic-bezier(.22,.61,.36,1);}
+  .slide.enterL{animation:inL .5s cubic-bezier(.22,.61,.36,1);}
+  @keyframes inR{from{opacity:0; transform:translateX(60px);} to{opacity:1; transform:none;}}
+  @keyframes inL{from{opacity:0; transform:translateX(-60px);} to{opacity:1; transform:none;}}
+  .slide.active > *{animation:rise .55s .06s both;}
+  .slide.active > *:nth-child(2){animation-delay:.14s;}
+  .slide.active > *:nth-child(3){animation-delay:.22s;}
+  .slide.active > *:nth-child(4){animation-delay:.3s;}
+  @keyframes rise{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+  .sec{font-family:ui-monospace,Menlo,monospace; font-size:clamp(10px,.95vw,13px); letter-spacing:.3em;
+    text-transform:uppercase; margin-bottom:1.1em; color:var(--cyan); text-shadow:0 0 14px rgba(0,240,255,.6);}
+  .sec .dot{color:var(--pink);}
+  h1{font-size:clamp(36px,6.4vw,92px); line-height:1.02; letter-spacing:-.02em; font-weight:800;}
+  h1 .glow{color:var(--cyan); text-shadow:0 0 26px rgba(0,240,255,.55), 0 0 60px rgba(0,240,255,.25);}
+  h1 .glowp{color:var(--pink); text-shadow:0 0 26px rgba(255,42,109,.55);}
+  h2{font-size:clamp(28px,4.2vw,60px); line-height:1.07; letter-spacing:-.015em; font-weight:750; margin-bottom:.45em;}
+  h2 .u{border-bottom:3px solid var(--pink); padding-bottom:.05em;}
+  p,li{font-size:clamp(16px,1.9vw,30px); line-height:1.45; color:var(--ink);}
+  .lede{font-size:clamp(20px,2.5vw,38px); color:var(--mute); line-height:1.38;}
+  .huge{font-size:clamp(28px,4.4vw,66px); font-weight:800; letter-spacing:-.02em; line-height:1.14;}
+  .big{font-size:clamp(26px,3.6vw,54px); font-weight:800; letter-spacing:-.02em; line-height:1.14;}
+  .analogy{border-left:3px solid var(--lime); padding:.5em 0 .5em 1em; margin:.7em 0;
+    background:linear-gradient(90deg, rgba(198,255,0,.06), transparent);}
+  .analogy .tag{font-family:ui-monospace,monospace; font-size:.65em; letter-spacing:.2em; color:var(--lime);
+    text-transform:uppercase; display:block; margin-bottom:.2em;}
+  .analogy b{color:var(--lime);}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:1.3em; margin-top:.5em;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.1em 1.25em;
+    backdrop-filter:blur(6px); box-shadow:0 18px 50px rgba(0,0,0,.4);}
+  .card h3{font-size:clamp(15px,1.55vw,23px); margin-bottom:.28em; color:var(--cyan);}
+  .card.pink h3{color:var(--pink);} .card.purple h3{color:var(--purple);} .card.lime h3{color:var(--lime);}
+  .card p{font-size:clamp(13px,1.35vw,19px); color:var(--ink);}
+  .before{display:grid; grid-template-columns:1fr auto 1fr; gap:1.3em; align-items:center; margin-top:1em;}
+  .ba{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.15em 1.35em;}
+  .ba.b1{border-color:rgba(255,42,109,.35);} .ba.b2{border-color:rgba(198,255,0,.4);}
+  .ba h3{font-size:clamp(13px,1.2vw,18px); font-family:ui-monospace,monospace; letter-spacing:.1em;
+    text-transform:uppercase; margin-bottom:.4em;} .ba.b1 h3{color:var(--pink);} .ba.b2 h3{color:var(--lime);}
+  .ba p{font-size:clamp(14px,1.5vw,22px);}
+  .flow{display:flex; align-items:center; gap:.55em; flex-wrap:wrap; margin:1.1em 0;}
+  .node{background:var(--panel); border:1px solid rgba(0,240,255,.35); border-radius:10px;
+    padding:.55em .9em; font-weight:700; font-size:clamp(12px,1.35vw,20px); box-shadow:0 0 18px rgba(0,240,255,.12);}
+  .node.p{border-color:rgba(255,42,109,.45); box-shadow:0 0 18px rgba(255,42,109,.14); color:var(--pink);}
+  .arw{color:var(--pink); font-size:1.4em; text-shadow:0 0 10px rgba(255,42,109,.6);}
+  .quote{font-size:clamp(22px,3.1vw,48px); line-height:1.26; font-weight:700; letter-spacing:-.01em;
+    border-left:4px solid var(--cyan); padding-left:.7em;}
+  .chip{font-family:ui-monospace,monospace; font-size:clamp(11px,1.05vw,15px); letter-spacing:.08em;
+    padding:.4em .85em; border-radius:999px; border:1px solid var(--line); color:var(--mute);}
+  .chip.on{color:var(--cyan); border-color:rgba(0,240,255,.5); text-shadow:0 0 10px rgba(0,240,255,.5);}
+  .chip.done{color:var(--lime); border-color:rgba(198,255,0,.4);}
+  .tagrow{display:flex; gap:.6em; flex-wrap:wrap; margin-top:1em;}
+  .spacer{flex:1;} .center{justify-content:center; align-items:center; text-align:center;}
+  /* chrome: progress bar + dot navigator + section footer */
+  #bar{position:absolute; top:0; left:0; height:3px; z-index:4;
+    background:linear-gradient(90deg,var(--cyan),var(--pink)); box-shadow:0 0 12px var(--cyan); transition:width .3s;}
+  #dots{position:absolute; bottom:4vh; left:0; right:0; z-index:4; display:flex; justify-content:center; gap:9px;}
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--line); transition:.25s; cursor:pointer;}
+  .dot.on{background:var(--cyan); box-shadow:0 0 10px var(--cyan); transform:scale(1.25);}
+  footer{position:absolute; left:8vw; right:8vw; bottom:7.5vh; z-index:3;
+    display:flex; justify-content:space-between; align-items:center; color:var(--mute);
+    font-family:ui-monospace,monospace; font-size:clamp(10px,.95vw,13px);}
+  #notes{position:fixed; left:0; right:0; bottom:0; z-index:6; max-height:42vh; overflow:auto;
+    background:rgba(6,4,14,.97); color:#dfe9ff; padding:1.1em 8vw; display:none; font-size:15px; line-height:1.55; border-top:2px solid var(--pink);}
+  #notes.show{display:block;} #notes b{color:var(--cyan);} #notes .t{color:var(--lime); font-family:ui-monospace,monospace;}
+  #help{position:fixed; right:12px; bottom:10px; z-index:7; font-family:ui-monospace,monospace;
+    font-size:11px; color:var(--mute); background:rgba(6,4,14,.8); padding:.4em .7em; border:1px solid var(--line); border-radius:6px;}
+  @media print{ body{overflow:visible;} .slide{display:flex !important; position:relative; height:100vh; page-break-after:always; animation:none !important;} .slide>*{animation:none !important;} #notes,#help,#bar,#dots{display:none !important;} }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck">
+
+<!-- 1 TITLE -->
+<section class="slide active center" data-time="0:15" data-notes="Open calm. 'Hi, I'm Megan. I'm going to explain my project in plain terms — what it is, who it's for, and why it matters — and then quickly where I am. About five minutes.' Then go slow into slide 2.">
+  <div class="sec">Colaberry Internship <span class="dot">//</span> Megan Dimiyo-Mbenoun</div>
+  <h1><span class="glow">TalentSignal</span><br>Revenue <span class="glowp">Engine</span></h1>
+  <p class="lede" style="margin-top:1em">Helping staffing agencies win the deal by hearing about it first.</p>
+</section>
+
+<!-- 2 BIG PICTURE: the problem + who -->
+<section class="slide" data-time="0:50" data-notes="BIG PICTURE — spend real time here. Who it's for: staffing agencies (a company that finds workers for other companies — like a dating app for jobs). Their problem: they find out LAST. Slow down on 'last'.">
+  <div class="sec">Big picture <span class="dot">·</span> the problem</div>
+  <h2>Staffing agencies find out <span class="u">last</span></h2>
+  <div class="analogy">
+    <span class="tag">Who it's for</span>
+    A <b>staffing agency</b> finds workers for companies — think of it as a <b>dating app for jobs</b>. They earn money each time they place someone.
+  </div>
+  <p class="lede" style="margin-top:.7em">The problem: they hear a company needs staff only when the job is <em>posted publicly</em> — and by then every rival sees it too, all fighting over the same opening.</p>
+  <footer><span>Who it's for &amp; the problem</span><span>02</span></footer>
+</section>
+
+<!-- 3 BIG PICTURE: what it is -->
+<section class="slide center" data-time="0:45" data-notes="THE one sentence. Say it once, clearly, PAUSE. This is the whole project. If they remember one thing, it's this.">
+  <div class="sec">Big picture <span class="dot">·</span> what it is</div>
+  <p class="huge">A tool that spots which companies are<br><span class="glow">about to need to hire</span><br><span style="color:var(--mute); font-size:.8em">— before they even post the job —</span><br>so the agency can reach out <span class="glowp" style="color:var(--pink)">first</span>.</p>
+  <footer><span>What TalentSignal is</span><span>03</span></footer>
+</section>
+
+<!-- 4 BIG PICTURE: why it matters -->
+<section class="slide" data-time="0:45" data-notes="Why it matters — make it concrete and human. Before vs after. Being first = warm call = winning the deal instead of a price war.">
+  <div class="sec">Big picture <span class="dot">·</span> why it matters</div>
+  <h2>First call wins the deal</h2>
+  <div class="before">
+    <div class="ba b1"><h3>Without it</h3><p>You see a public posting. So did five rivals. You cold-call and compete on price.</p></div>
+    <div class="arw" style="font-size:1.8em">→</div>
+    <div class="ba b2"><h3>With TalentSignal</h3><p>You get an early heads-up. You call first — warm, and uncrowded.</p></div>
+  </div>
+  <div class="analogy" style="margin-top:1.1em">
+    <span class="tag">Think of it like</span>
+    Noticing a friend seems <b>off</b> before they've said anything — reading the early signs instead of waiting to be told.
+  </div>
+  <footer><span>Why it matters</span><span>04</span></footer>
+</section>
+
+<!-- 5 CORE FEATURES -->
+<section class="slide" data-time="1:00" data-notes="CORE FEATURES — high level only, no tech. Walk the flow once, plainly. These are the things it can do. Keep it moving.">
+  <div class="sec">Core features <span class="dot">·</span> what it does</div>
+  <h2>How it works — six simple steps</h2>
+  <div class="flow">
+    <div class="node">📡 A hint comes in</div><span class="arw">→</span>
+    <div class="node">🔍 Spot demand</div><span class="arw">→</span>
+    <div class="node">🎯 Match people</div><span class="arw">→</span>
+    <div class="node">📊 Score it</div><span class="arw">→</span>
+    <div class="node">📋 Track it</div><span class="arw">→</span>
+    <div class="node p">✋ Human sends</div>
+  </div>
+  <p class="lede" style="margin-top:.7em">A hint arrives that a company might need people. The tool spots the demand, finds the best-fit candidates, scores how promising it is, tracks it through the sales process, and drafts the outreach message.</p>
+  <footer><span>Core features</span><span>05</span></footer>
+</section>
+
+<!-- 6 CORE FEATURES: the one rule -->
+<section class="slide" data-time="0:30" data-notes="The differentiator and your hook. Say it slowly. This is what makes it safe and special — and what a stakeholder will remember.">
+  <div class="sec">Core features <span class="dot">·</span> the safety rule</div>
+  <h2>The AI drafts. A <span class="u">human</span> sends.</h2>
+  <p class="lede">It can suggest, score, and even write the message — but it <span style="color:var(--pink)">never sends anything on its own</span>. A person always approves first.</p>
+  <div class="analogy" style="margin-top:.9em">
+    <span class="tag">Think of it like</span>
+    Your <b>phone suggesting a text</b> — it writes the words, but only <i>you</i> press send.
+  </div>
+  <footer><span>The one rule</span><span>06</span></footer>
+</section>
+
+<!-- 7 CORE FEATURES: full vision -->
+<section class="slide" data-time="0:35" data-notes="What it'll do when complete — the finished picture. Keep it aspirational but brief. This shows you know where it's going.">
+  <div class="sec">Core features <span class="dot">·</span> the finished picture</div>
+  <h2>When it&rsquo;s complete</h2>
+  <div class="grid3">
+    <div class="card"><h3>Finds &amp; ranks</h3><p>Surfaces hidden demand and the best candidates, with reasons.</p></div>
+    <div class="card pink"><h3>Drafts &amp; releases</h3><p>Writes outreach a human reviews and sends — nothing automatic.</p></div>
+    <div class="card purple"><h3>Reports safely</h3><p>Manager dashboards on totals only — never anyone's private data.</p></div>
+  </div>
+  <footer><span>The full vision</span><span>07</span></footer>
+</section>
+
+<!-- 8 CURRENT STATUS (small) -->
+<section class="slide" data-time="0:30" data-notes="STATUS — keep it SHORT, the rubric says a small portion. 12 of 20 pieces done, built in safe layers, on schedule. Don't linger.">
+  <div class="sec">Current status <span class="dot">·</span> where I am now</div>
+  <h2>Over halfway — <span class="u">on schedule</span></h2>
+  <p class="lede">Built in four safe layers, each one something you can watch actually run:</p>
+  <div class="grid3" style="margin-top:.8em">
+    <div class="card lime"><h3>✓ Foundation</h3><p>The app runs; secure login.</p></div>
+    <div class="card"><h3>✓ The smarts</h3><p>Demand, matching, scoring.</p></div>
+    <div class="card pink"><h3>✓ Human in charge</h3><p>Pipeline + the release rule.</p></div>
+  </div>
+  <div class="tagrow"><span class="chip done">12 of 20 done</span><span class="chip on">dashboard in progress</span><span class="chip on">on schedule</span></div>
+  <footer><span>Current status</span><span>08</span></footer>
+</section>
+
+<!-- 9 CLOSE -->
+<section class="slide center" data-time="0:20" data-notes="Close by returning to the simple idea. Then STOP and invite questions. Do not run over — the limit is strict.">
+  <div class="sec">In one line</div>
+  <h1 style="font-size:clamp(30px,4.8vw,66px)">Hear about it <span class="glow">first</span>.<br>The AI drafts — a <span class="glowp" style="color:var(--pink)">human</span> sends.</h1>
+  <p class="lede" style="margin-top:1.1em">Thank you — I&rsquo;m happy to take questions.</p>
+</section>
+
+</div>
+
+<div id="dots"></div>
+<div id="notes"></div>
+<div id="help">← → move · <b>N</b> notes · <b>F</b> fullscreen</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const bar=document.getElementById('bar'), notesEl=document.getElementById('notes'), dotsEl=document.getElementById('dots');
+  let i=0, notesOn=false;
+  slides.forEach((s,n)=>{ const d=document.createElement('div'); d.className='dot'; d.onclick=()=>go(n); dotsEl.appendChild(d); });
+  const dots=[...dotsEl.children];
+  function render(dir){
+    slides.forEach((s,n)=>{ s.classList.remove('active','enterR','enterL');
+      if(n===i){ s.classList.add('active', dir>=0?'enterR':'enterL'); } });
+    dots.forEach((d,n)=>d.classList.toggle('on',n===i));
+    bar.style.width=((i+1)/slides.length*100)+'%';
+    const t=slides[i].dataset.time?('<span class="t">['+slides[i].dataset.time+']</span> '):'';
+    notesEl.innerHTML='<b>Slide '+(i+1)+'/'+slides.length+'</b> '+t+'&nbsp; '+(slides[i].dataset.notes||'');
+  }
+  function go(n){ const dir=n>=i?1:-1; i=Math.max(0,Math.min(slides.length-1,n)); render(dir); }
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();go(i+1);}
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(i-1);}
+    else if(e.key==='Home')go(0); else if(e.key==='End')go(slides.length-1);
+    else if(e.key.toLowerCase()==='n'){notesOn=!notesOn;notesEl.classList.toggle('show',notesOn);}
+    else if(e.key.toLowerCase()==='f'){ if(!document.fullscreenElement)document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+  });
+  document.addEventListener('click',e=>{ if(e.target.closest('#notes')||e.target.closest('#dots'))return; go(i+(e.clientX>window.innerWidth/2?1:-1)); });
+  render(1);
+</script>
+</body>
+</html>

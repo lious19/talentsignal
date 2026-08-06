@@ -1,125 +1,112 @@
-# How to present TalentSignal — a script you can actually follow
+# Game plan — the 5-minute pitch that will land
 
-Ali's note: **explain what the project IS before jumping into what you built.** This script does
-exactly that. The first four minutes have no tech, no "R0/R1", no jargon — just the problem and
-the idea, in plain words. Only after the room understands the project do you show the work.
-
-Read it out loud a few times. You don't have to say it word-for-word — but if you blank, these
-words are safe to fall back on.
+This is built from the exact rubric your peer shared. The deck `TalentSignal-5min-pitch.html`
+already follows it. This is how to *deliver* it.
 
 ---
 
-## The golden rule of this presentation
-**Nobody in the room knows this project except you and Ali.** So you start from zero. Assume the
-person listening has never heard the words "staffing agency" or "TalentSignal." Bring them up
-slowly. The moment you say "R2" or "the audit trigger" before they understand the project, you
-lose them — that's what happened last time, and it's the only thing you need to fix.
+## What went wrong last time (so it never happens again)
+You started with the details (releases, features) before the room knew what the project *was*.
+You and Ali live inside this project, so you started where your head is. But the audience had zero
+context — so "here's what I built" landed as noise. **The fix is one thing: spend the first half
+explaining the big picture in plain words, as if to someone who has never touched a computer.**
+
+Ali literally said it: *"The presentation would have been fine if you'd given an intro at the
+beginning as to what your app does and why it's needed."* That's the whole correction.
 
 ---
 
-## PART 1 — The setup (≈3–4 min, NO technology)
+## The rubric, turned into a time budget (5 min, strict)
 
-**Slide 1 (title).** Don't rush off it. Say:
-> "Before I show you anything I built, I want to explain in plain words what this project even is —
-> because it only makes sense once you understand the problem it solves. Give me two minutes."
+| Section | Time | Slides | The question you're answering |
+|---|---|---|---|
+| **Big Picture** (most important) | ~2m 20s | 2, 3, 4 | What problem? Who's it for? Why does it matter? |
+| **Core Features** | ~2m 05s | 5, 6, 7 | What can it do? How does it work (high level)? |
+| **Current Status** (small) | ~30s | 8 | Where am I now? |
+| Open + close | ~05s each | 1, 9 | — |
 
-That one sentence buys you the room's patience. Then go slow.
-
-**Slide 2 — what's a staffing agency.** Ask the room, genuinely:
-> "Quick question — does everyone know what a staffing agency does? It's a company whose whole job
-> is connecting businesses that need workers with people looking for jobs. Think of it like a
-> dating app, but for jobs. They make money every time they successfully place someone."
-
-**Slide 3 — the problem.** Slow down on the word *last*:
-> "Here's their problem. Today, an agency finds out a company needs staff only when that company
-> posts the job publicly. But by then, every rival agency has seen the exact same posting — so
-> they're all fighting over the same opening, competing on price. The agency that hears about it
-> *first* is the one that wins."
-
-**Slide 4 — the one sentence.** Say it once, clearly, then pause:
-> "So here's what I built: a tool that spots which companies are about to need to hire — before
-> they even post the job — so the agency can reach out first."
-
-Pause. Let it land. That sentence is the whole project.
-
-**Slide 5 — before/after.** Make it real:
-> "Without it, you see a public posting, so did five rivals, you cold-call and compete on price.
-> With TalentSignal, you get an early heads-up before the posting — you call first, warm, while
-> it's still uncrowded."
-
-**Slide 6 — the one rule (your hook).** This is what makes it special:
-> "And it has one strict safety rule built into it. The tool can suggest, score, and even write
-> the outreach message — but it can never send anything on its own. A human always reviews and
-> approves first. Like your phone suggesting a text: it writes the words, but only you press send.
-> The AI does the typing — a person always owns the send."
-
-**By now the room fully understands the project.** *Now* you've earned the right to show the work.
+Big Picture gets the MOST time. Status gets the LEAST. That ratio is the assignment.
 
 ---
 
-## PART 2 — What you built (≈4–5 min, now you can go deeper)
+## The word-for-word script (fall back on this if you blank)
 
-**Slide 7 — the whole machine.** Walk the six boxes left to right, plainly:
-> "Here's how it works end to end. A hint comes in that a company might need people. The tool spots
-> the demand, finds the best-fit candidates, scores how promising it is, tracks it through the
-> sales process, and drafts the outreach. Then — a human reviews and sends. Never the machine."
+**Slide 1 — Title (15s).** Calm open:
+> "Hi, I'm Megan. I'll explain my project in plain terms — what it is, who it's for, and why it
+> matters — and then quickly where I am. About five minutes."
 
-**Slide 8 — real code.** Quick, 30 seconds:
-> "This isn't slides or a mockup — it's a real, working app. Three parts: the screen you click,
-> the brain that thinks, and the memory that stores everything. The outside data is simulated for
-> now, like learning to drive in an empty parking lot — real car, no traffic yet."
+**Slide 2 — The problem + who (50s).** Slow. Emphasize *last*:
+> "This is for a staffing agency — a company that finds workers for other companies. Think of it as
+> a dating app, but for jobs; they earn money each time they place someone. Their problem is they
+> find out *last*: they only hear a company needs staff once the job is posted publicly — and by
+> then every rival agency sees it too, and they all fight over the same opening."
 
-**Slide 9 — the four layers.** Frame it as building safely, in order:
-> "I built it in four layers, each one something you can watch run. The foundation, then the
-> smarts, then the human-in-charge rule, and now the manager's dashboard. Twelve of twenty pieces
-> done, on schedule."
+**Slide 3 — What it is (45s).** The one sentence. Say it once, then PAUSE:
+> "So here's what I'm building: a tool that spots which companies are about to need to hire —
+> before they even post the job — so the agency can reach out first."
 
-**Slide 10 — the tamper-proof record.** Your proudest point, plainly:
-> "One thing I'm proud of: every important action is recorded permanently — who, when, what. And
-> nobody, not even an admin, can edit or delete it. Like a WhatsApp group where you can add
-> messages but never delete the old ones. I proved it with a test that tries to change a record
-> and the database refuses."
+*(Let it sit. This is the sentence that fixes last time.)*
 
-**Slide 11 — your actual job.** The answer to "did you build this?":
-> "People ask — did you build this, or did the AI? The AI wrote most of the code. My job was to
-> decide whether it was right, and I turned plenty down. One example: a safety limit was
-> accidentally applied to the whole app instead of just the login — a couple of refreshes would
-> have frozen everything, live. Every test passed. I only caught it by clicking through the real
-> app myself."
+**Slide 4 — Why it matters (45s).** Make it real:
+> "Without it, you see a public posting, so did five rivals, and you cold-call and compete on
+> price. With this, you get an early heads-up and call first — warm, while it's still uncrowded.
+> It's like noticing a friend seems off before they've said anything — reading the early signs."
 
-**Slide 12 — honest limits.** Say them before anyone asks:
-> "To be honest about what I haven't proven yet: the outside data is simulated, the scoring numbers
-> are my proposal waiting on sign-off, full permissions aren't enforced yet, and nothing's online
-> yet. I'd rather tell you that than guess."
+**Slide 5 — Core features (60s).** Walk the six steps, plainly, no tech:
+> "Here's how it works. A hint arrives that a company might need people. The tool spots the demand,
+> finds the best-fit candidates, scores how promising it is, tracks it through the sales process,
+> and drafts the outreach message."
 
-**Slide 13 — close:**
-> "So in one line: find the demand first, and the AI drafts while a human always sends. Happy to
-> take questions."
+**Slide 6 — The one rule (30s).** Your hook:
+> "And it has one safety rule: it can suggest and even write the message, but it never sends
+> anything on its own — a human always approves first. Like your phone suggesting a text: it writes
+> it, but only you press send."
 
-Then **stop talking** and take questions.
+**Slide 7 — When it's complete (35s).**
+> "When it's finished, it finds and ranks opportunities with reasons, drafts outreach a human
+> releases, and gives managers dashboards built on totals only — never anyone's private data."
 
----
+**Slide 8 — Status (30s, keep it SHORT).**
+> "Where I am now: it's built in four safe layers, each one you can watch actually run — the
+> foundation, the smarts, the human-in-charge rule, and the dashboard in progress. Twelve of twenty
+> pieces done, on schedule."
 
-## Delivery tips (the "how", not just the "what")
-
-- **Slow down.** When nervous you speed up. The first four minutes especially — go slower than
-  feels natural. Pauses feel long to you and normal to them.
-- **Watch faces on slides 2–4.** If people look lost there, you've gone too fast — back up. If
-  they're nodding, you can pick up pace.
-- **One idea per slide.** Don't add detail the slide doesn't have. The slide is your outline.
-- **If you blank,** reach for the green picture on the slide — dating app, phone text, WhatsApp,
-  parking lot. The analogy will restart your sentence.
-- **If Ali stops you again,** don't panic — ask "where did I lose you?" and back up to that point.
-  That's a strong, calm move, not a weakness.
+**Slide 9 — Close (15s).** Then STOP:
+> "In one line: hear about it first, and the AI drafts while a human always sends. Thank you —
+> happy to take questions."
 
 ---
 
-## Two other things Ali suggested — worth doing
+## Presenting to non-technical people (Ali's other note)
+- **Never say a tech word without an everyday picture next to it.** Dating app, phone text,
+  reading a friend's mood, driving in an empty lot. The pictures ARE the explanation for them.
+- **No jargon at all in the first half.** No "release," "API," "database," "audit." Save any of
+  that for questions, and even then, translate it.
+- **Test:** could your grandmother follow slides 2–4? If not, simplify until she could.
 
-1. **NotebookLM video/audio.** Upload `TalentSignal-revision-guide.pdf` (the plain-language one)
-   into NotebookLM and generate an Audio Overview or video. Because that PDF is already written in
-   simple words, the generated version will explain the project well — good to share so it's not
-   "only you and Ali who understand it."
-2. **Practice the first 4 minutes only.** You don't need to rehearse the whole thing — nail the
-   opening (slides 1–6). If the setup lands, the rest is easy. Say it out loud three times before
-   the next presentation.
+## Delivery
+- **Slow down** — especially slides 2–4. Nerves speed you up; fight it. Pauses feel long to you,
+  normal to them.
+- **The deck shows the headline; YOU tell the story.** Don't read the slides. Talk to the room.
+- **Watch faces on slides 2–4.** Lost looks = back up. Nods = keep going.
+- **Practice the first 2 minutes out loud, 5 times.** If the opening lands, the rest is easy.
+- **Respect the clock.** They cut you off at 5:00. The deck's speaker notes show a time budget per
+  slide (press **N**) — glance at it while rehearsing so you're calibrated.
+
+## Making it "more presentable" (Ali's ask)
+The new deck already has it: smooth PowerPoint-style slide transitions (slides glide in with
+direction), a live progress bar, and clickable slide dots at the bottom so you can jump around.
+Press **F** for fullscreen when you present so it fills the screen like a real slideshow.
+
+## Bonus — the NotebookLM idea Ali mentioned
+Upload `TalentSignal-revision-guide.pdf` (the plain-language one) into NotebookLM and generate an
+Audio Overview or video. Because it's already written simply, the result explains the project well
+— a good thing to share so it's not "only you and Ali" who understand it.
+
+---
+
+## The one mindset shift
+Last time you presented like an *engineer* proud of what you built. This time, present like a
+*storyteller* explaining why anyone should care. The rubric's own line says it best: **if you can't
+explain it simply, you don't fully understand it yet — and you clearly do understand it. Now just
+say it simply.**
