@@ -14,13 +14,13 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
 
     expect(res.status).toBe(200);
     expect(res.body.feedback.feedback).toBe("good");
-    // salesAuthHeader signs sub "user-1" — see tests/helpers/authHeader.ts.
-    expect(res.body.feedback.recruiterId).toBe("user-1");
+    // recruiterAuthHeader signs sub "user-2" by default — see tests/helpers/authHeader.ts.
+    expect(res.body.feedback.recruiterId).toBe("user-2");
   });
 
   it("idempotency: marking the same recommendation 'good' twice stays one row", async () => {
@@ -31,11 +31,11 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
     await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
 
     expect(feedback).toHaveLength(1);
@@ -50,11 +50,11 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
     const second = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "bad" });
 
     expect(second.status).toBe(200);
@@ -70,15 +70,15 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
     await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", recruiterAuthHeader())
+      .set("Authorization", recruiterAuthHeader("user-4"))
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "bad" });
 
     expect(feedback).toHaveLength(2);
-    expect(feedback.map((f) => f.recruiter_id).sort()).toEqual(["user-1", "user-2"]);
+    expect(feedback.map((f) => f.recruiter_id).sort()).toEqual(["user-2", "user-4"]);
   });
 
   it("returns 400 for an invalid feedback value", async () => {
@@ -89,7 +89,7 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: candidate.id, feedback: "excellent" });
 
     expect(res.status).toBe(400);
@@ -102,7 +102,7 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: "does-not-exist", candidateId: candidate.id, feedback: "good" });
 
     expect(res.status).toBe(404);
@@ -115,7 +115,7 @@ describe("POST /api/recommendation-engine/feedback", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: "does-not-exist", feedback: "good" });
 
     expect(res.status).toBe(400);
@@ -131,5 +131,20 @@ describe("POST /api/recommendation-engine/feedback", () => {
       .send({ jobId: "job-1", candidateId: "candidate-1", feedback: "good" });
 
     expect(res.status).toBe(401);
+  });
+
+  // 06_decisions/022: admin/recruiter only (S-11: "As a recruiter...").
+  it("rejects a sales role with 403 (06_decisions/022)", async () => {
+    const { pool, seedJobOpening, seedCandidate } = createFakeRecommendationPool();
+    const job = seedJobOpening({ requirements: [] });
+    const candidate = seedCandidate({ skills: [] });
+    const app = createApp(pool, noopProvider);
+
+    const res = await request(app)
+      .post("/api/recommendation-engine/feedback")
+      .set("Authorization", salesAuthHeader())
+      .send({ jobId: job.id, candidateId: candidate.id, feedback: "good" });
+
+    expect(res.status).toBe(403);
   });
 });

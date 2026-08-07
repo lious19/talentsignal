@@ -4,7 +4,7 @@ import type { Pool } from "pg";
 import { createApp } from "../src/app";
 import { createFakeMatchmakingPool } from "./helpers/fakeMatchmakingPool";
 import { noopProvider } from "./helpers/noopProvider";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader, salesAuthHeader } from "./helpers/authHeader";
 
 describe("POST /api/client-matchmaking/match", () => {
   it("returns candidates ranked by fit score, most relevant first", async () => {
@@ -106,5 +106,19 @@ describe("POST /api/client-matchmaking/match", () => {
     expect(res.body.candidates[0].name).toBe("Weak Overlap, Low Experience");
     expect(res.body.candidates[1].name).toBe("Zero Overlap, High Experience");
     expect(res.body.candidates[1].fitScore).toBe(0);
+  });
+
+  // 06_decisions/022: admin/sales only (S-06: "As a sales rep...").
+  it("rejects a recruiter role with 403", async () => {
+    const { pool, seedJobOpening } = createFakeMatchmakingPool();
+    const job = seedJobOpening({ requirements: ["react", "sql"] });
+    const app = createApp(pool, noopProvider);
+
+    const res = await request(app)
+      .post("/api/client-matchmaking/match")
+      .set("Authorization", recruiterAuthHeader())
+      .send({ jobId: job.id });
+
+    expect(res.status).toBe(403);
   });
 });

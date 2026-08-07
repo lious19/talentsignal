@@ -2,6 +2,7 @@
 import type { Pool } from "pg";
 import { logger } from "../logger";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireRole } from "../middleware/requireRole";
 import type { MarketSignal, MarketSignalProvider } from "../adapters/marketSignalProvider";
 import { scoreSignal, type ScoreFactor } from "../scoring/confidenceScore";
 
@@ -162,7 +163,8 @@ export function hiddenDemandRouter(
   const providerTimeoutMs = options?.providerTimeoutMs ?? PROVIDER_TIMEOUT_MS;
   const router = Router();
 
-  router.post("/hidden-demand/analyze", requireAuth, async (req, res) => {
+  // S-04: "As a sales rep..." — 06_decisions/022's permission matrix.
+  router.post("/hidden-demand/analyze", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     let signals;
     try {
       signals = await withTimeout(
@@ -192,7 +194,7 @@ export function hiddenDemandRouter(
     }
   });
 
-  router.get("/hidden-demand/opportunities", requireAuth, async (req, res) => {
+  router.get("/hidden-demand/opportunities", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     try {
       // Seed rows (source = 'seed-job-board', see SeedJobBoardProvider) are
       // synthetic test data used to demo ranking and measure AC-4-2 latency —

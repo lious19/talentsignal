@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Pool } from "pg";
 import { logger } from "../logger";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireRole } from "../middleware/requireRole";
 import type { PipelineNotifier } from "../adapters/pipelineNotifier";
 
 const STAGES = ["prospecting", "contacted", "negotiation", "closed"] as const;
@@ -59,7 +60,8 @@ export function salesPipelineRouter(pool: Pool, notifier: PipelineNotifier): Rou
   // together. pool.connect() checks out ONE client for the whole sequence —
   // pool.query() per call can silently hand different calls to different
   // pooled connections, which would break the transaction.
-  router.post("/sales-pipeline/update", requireAuth, async (req, res) => {
+  // S-08: "As a sales rep..." — 06_decisions/022.
+  router.post("/sales-pipeline/update", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     const clientId = req.body?.clientId;
     const toStage = req.body?.toStage;
 
@@ -144,7 +146,7 @@ export function salesPipelineRouter(pool: Pool, notifier: PipelineNotifier): Rou
     }
   });
 
-  router.get("/sales-pipeline", requireAuth, async (req, res) => {
+  router.get("/sales-pipeline", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     try {
       const { rows } = await pool.query(
         `SELECT sp.*, c.name AS client_name

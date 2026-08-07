@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Pool } from "pg";
 import { logger } from "../logger";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireRole } from "../middleware/requireRole";
 import { scoreCandidate, type MatchJobInput } from "../matching/matchScore";
 
 interface JobOpeningRow {
@@ -65,7 +66,8 @@ export function clientMatchmakingRouter(pool: Pool): Router {
   // any client system. There is no "submit to client" endpoint anywhere in
   // this codebase yet — that is S-09's human-release gate. `suggestion: true`
   // in the response is part of that trust contract, not decoration.
-  router.post("/client-matchmaking/match", requireAuth, async (req, res) => {
+  // S-06: "As a sales rep..." — 06_decisions/022.
+  router.post("/client-matchmaking/match", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     const jobId = req.body?.jobId;
     if (!isValidJobId(jobId)) {
       res.status(400).json({ error: "jobId is required" });

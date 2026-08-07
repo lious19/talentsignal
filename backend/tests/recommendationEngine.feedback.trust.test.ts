@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeRecommendationPool } from "./helpers/fakeRecommendationPool";
 import { noopProvider } from "./helpers/noopProvider";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader } from "./helpers/authHeader";
 
 /**
  * TRUST (S-11, REQ-020): "feedback is stored against the recommendation."
@@ -23,19 +23,19 @@ describe("TRUST — feedback is stored against the specific recommendation it wa
 
     const before = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id });
     expect(before.body.candidates.every((c: { feedback: string }) => c.feedback === "none")).toBe(true);
 
     const feedbackRes = await request(app)
       .post("/api/recommendation-engine/feedback")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id, candidateId: target.id, feedback: "good" });
     expect(feedbackRes.status).toBe(200);
 
     const after = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id });
 
     const byId = new Map(

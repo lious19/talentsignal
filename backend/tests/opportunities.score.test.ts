@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeOpportunitiesPool } from "./helpers/fakeOpportunitiesPool";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader, salesAuthHeader } from "./helpers/authHeader";
 import type { MarketSignal, MarketSignalProvider } from "../src/adapters/marketSignalProvider";
 
 const SIGNAL: MarketSignal = {
@@ -103,5 +103,19 @@ describe("POST /api/opportunities/score", () => {
       .send({ opportunityIds: [seeded.id] });
 
     expect(second.body).toEqual(first.body);
+  });
+
+  // 06_decisions/022: admin/sales only — feeds the same queue as S-04.
+  it("rejects a recruiter role with 403", async () => {
+    const { pool } = createFakeOpportunitiesPool();
+    const app = createApp(pool, fixedProvider([SIGNAL]));
+    const seeded = await seedOpportunity(app);
+
+    const res = await request(app)
+      .post("/api/opportunities/score")
+      .set("Authorization", recruiterAuthHeader())
+      .send({ opportunityIds: [seeded.id] });
+
+    expect(res.status).toBe(403);
   });
 });

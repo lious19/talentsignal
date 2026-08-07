@@ -11,6 +11,7 @@ import { PackageReviewScreen } from "./PackageReviewScreen";
 import { RelationshipsPanel } from "./RelationshipsPanel";
 import { RecommendationScreen } from "./RecommendationScreen";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { RoleGate } from "./RoleGate";
 import { clearStoredToken, getStoredToken } from "./auth";
 
 type HealthState =
@@ -66,19 +67,41 @@ export function App() {
       {token ? (
         <>
           <button onClick={handleLogout}>Log out</button>
-          <section aria-label="opportunities">
-            <h2>Opportunities</h2>
-            <OpportunitiesList />
-          </section>
-          <ClientsScreen />
-          <CandidatesScreen />
-          <JobOpeningsScreen />
-          <MatchScreen />
-          <SalesPipelineBoard />
-          <PackageReviewScreen />
-          <RelationshipsPanel />
-          <RecommendationScreen />
-          <AnalyticsDashboard />
+          {/* Role gates per 06_decisions/022's permission matrix — UX only,
+              the backend requireRole gate is the real boundary. */}
+          <RoleGate allow={["admin", "sales"]}>
+            <section aria-label="opportunities">
+              <h2>Opportunities</h2>
+              <OpportunitiesList />
+            </section>
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <ClientsScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <CandidatesScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <JobOpeningsScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales"]}>
+            <MatchScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales"]}>
+            <SalesPipelineBoard />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <PackageReviewScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <RelationshipsPanel />
+          </RoleGate>
+          <RoleGate allow={["admin", "recruiter"]}>
+            <RecommendationScreen />
+          </RoleGate>
+          <RoleGate allow={["admin", "sales", "recruiter"]}>
+            <AnalyticsDashboard />
+          </RoleGate>
         </>
       ) : authView === "login" ? (
         <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />

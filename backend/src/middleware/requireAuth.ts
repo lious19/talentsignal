@@ -2,10 +2,10 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../auth/jwt";
 
 /**
- * Verifies a bearer token and attaches { id, role } to req.user. Not wired
- * into any route yet — S-14 builds RBAC on top of this, deciding which
- * routes require it and what each role may do. This only answers "is there a
- * valid token," never "is this role allowed here."
+ * Verifies a bearer token and attaches { id, role } to req.user. Wired into
+ * every route except health and auth's own register/login (by design). This
+ * only answers "is there a valid token," never "is this role allowed here" —
+ * that's requireRole (06_decisions/022), which must run after this.
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const header = req.header("authorization");

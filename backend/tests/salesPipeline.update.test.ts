@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeSalesPipelinePool } from "./helpers/fakeSalesPipelinePool";
 import { noopProvider } from "./helpers/noopProvider";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader, salesAuthHeader } from "./helpers/authHeader";
 
 describe("POST /api/sales-pipeline/update", () => {
   it("happy path: enrolls a brand-new client at prospecting, from_stage null", async () => {
@@ -134,6 +134,20 @@ describe("POST /api/sales-pipeline/update", () => {
     expect(salesPipelineAudit[1].from_stage).toBe("prospecting");
     expect(salesPipelineAudit[1].to_stage).toBe("closed");
   });
+
+  // 06_decisions/022: admin/sales only (S-08: "As a sales rep...").
+  it("rejects a recruiter role with 403", async () => {
+    const { pool, seedClient } = createFakeSalesPipelinePool();
+    const app = createApp(pool, noopProvider);
+    const client = seedClient();
+
+    const res = await request(app)
+      .post("/api/sales-pipeline/update")
+      .set("Authorization", recruiterAuthHeader())
+      .send({ clientId: client.id, toStage: "prospecting" });
+
+    expect(res.status).toBe(403);
+  });
 });
 
 describe("GET /api/sales-pipeline", () => {
@@ -163,5 +177,16 @@ describe("GET /api/sales-pipeline", () => {
     expect(res.body.pipeline).toHaveLength(1);
     expect(res.body.pipeline[0].clientName).toBe("Acme Corp");
     expect(res.body.pipeline[0].status).toBe("prospecting");
+  });
+
+  it("rejects a recruiter role with 403", async () => {
+    const { pool } = createFakeSalesPipelinePool();
+    const app = createApp(pool, noopProvider);
+
+    const res = await request(app)
+      .get("/api/sales-pipeline")
+      .set("Authorization", recruiterAuthHeader());
+
+    expect(res.status).toBe(403);
   });
 });

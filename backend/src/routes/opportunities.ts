@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Pool } from "pg";
 import { logger } from "../logger";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireRole } from "../middleware/requireRole";
 import { toOpportunityResponse, type OpportunityRow } from "./hiddenDemand";
 
 function isValidIdList(value: unknown): value is string[] {
@@ -32,7 +33,8 @@ function isValidIdList(value: unknown): value is string[] {
 export function opportunitiesRouter(pool: Pool): Router {
   const router = Router();
 
-  router.post("/opportunities/score", requireAuth, async (req, res) => {
+  // Feeds the same sales-facing queue as S-04 — 06_decisions/022.
+  router.post("/opportunities/score", requireAuth, requireRole(["admin", "sales"]), async (req, res) => {
     const opportunityIds = req.body?.opportunityIds;
     if (!isValidIdList(opportunityIds)) {
       res.status(400).json({ error: "opportunityIds must be a non-empty array of strings" });

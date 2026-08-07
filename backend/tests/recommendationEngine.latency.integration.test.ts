@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import { createApp } from "../src/app";
 import { runMigrations } from "../src/db/migrate";
 import { noopProvider } from "./helpers/noopProvider";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader } from "./helpers/authHeader";
 
 /**
  * AC-4-9: "each candidate comes with a plain-English rationale within the
@@ -112,7 +112,7 @@ describeIfRequested(
 
       const res = await request(app)
         .post("/api/recommendation-engine/recommend")
-        .set("Authorization", salesAuthHeader())
+        .set("Authorization", recruiterAuthHeader())
         .send({ jobId });
 
       expect(res.status).toBe(200);

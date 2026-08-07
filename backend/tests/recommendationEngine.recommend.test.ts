@@ -4,7 +4,7 @@ import type { Pool } from "pg";
 import { createApp } from "../src/app";
 import { createFakeRecommendationPool } from "./helpers/fakeRecommendationPool";
 import { noopProvider } from "./helpers/noopProvider";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { recruiterAuthHeader, salesAuthHeader } from "./helpers/authHeader";
 
 describe("POST /api/recommendation-engine/recommend", () => {
   it("returns candidates ranked by fit score, most relevant first, each with feedback: 'none'", async () => {
@@ -17,7 +17,7 @@ describe("POST /api/recommendation-engine/recommend", () => {
     const app = createApp(pool, noopProvider);
     const res = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id });
 
     expect(res.status).toBe(200);
@@ -44,7 +44,7 @@ describe("POST /api/recommendation-engine/recommend", () => {
     const app = createApp(pool, noopProvider);
     const res = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id });
 
     expect(res.status).toBe(200);
@@ -59,7 +59,7 @@ describe("POST /api/recommendation-engine/recommend", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: "does-not-exist" });
 
     expect(res.status).toBe(404);
@@ -71,7 +71,7 @@ describe("POST /api/recommendation-engine/recommend", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({});
 
     expect(res.status).toBe(400);
@@ -98,7 +98,7 @@ describe("POST /api/recommendation-engine/recommend", () => {
 
     const res = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: "job-1" });
 
     expect(res.status).toBe(500);
@@ -113,13 +113,29 @@ describe("POST /api/recommendation-engine/recommend", () => {
     const app = createApp(pool, noopProvider);
     const first = await request(app)
       .post("/api/recommendation-engine/recommend")
-      .set("Authorization", salesAuthHeader())
+      .set("Authorization", recruiterAuthHeader())
       .send({ jobId: job.id });
     const second = await request(app)
+      .post("/api/recommendation-engine/recommend")
+      .set("Authorization", recruiterAuthHeader())
+      .send({ jobId: job.id });
+
+    expect(second.body.candidates).toEqual(first.body.candidates);
+  });
+
+  // 06_decisions/022: this route is admin/recruiter only (S-11: "As a
+  // recruiter..."). A sales token — the primary token every other test in
+  // this file used before that decision — must now be denied.
+  it("rejects a sales role with 403 (06_decisions/022)", async () => {
+    const { pool, seedJobOpening } = createFakeRecommendationPool();
+    const job = seedJobOpening({ requirements: [] });
+    const app = createApp(pool, noopProvider);
+
+    const res = await request(app)
       .post("/api/recommendation-engine/recommend")
       .set("Authorization", salesAuthHeader())
       .send({ jobId: job.id });
 
-    expect(second.body.candidates).toEqual(first.body.candidates);
+    expect(res.status).toBe(403);
   });
 });

@@ -73,12 +73,27 @@ export function createFakeRecommendationPool() {
       return { rows: [...candidates] };
     }
 
-    if (sql.includes("FROM recommendation_feedback WHERE job_id")) {
+    // The /recommend route's own feedback lookup — always scoped to a single
+    // (job, recruiter) pair, and only ever needs candidate_id + feedback.
+    if (sql.startsWith("SELECT candidate_id, feedback FROM recommendation_feedback")) {
       const [jobId, recruiterId] = params as [string, string];
       return {
         rows: feedback
           .filter((f) => f.job_id === jobId && f.recruiter_id === recruiterId)
           .map((f) => ({ candidate_id: f.candidate_id, feedback: f.feedback })),
+      };
+    }
+
+    // The new GET /recommendation-engine/feedback route (S-14, 06_decisions/022)
+    // — full rows, scoped to a recruiter only when one is provided (an admin
+    // omitting recruiterId sees every recruiter's feedback for the job).
+    if (sql.startsWith("SELECT * FROM recommendation_feedback WHERE job_id")) {
+      const [jobId, recruiterId] = params as [string, string | undefined];
+      return {
+        rows: feedback
+          .filter((f) => f.job_id === jobId && (recruiterId === undefined || f.recruiter_id === recruiterId))
+          .slice()
+          .sort((a, b) => (a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0)),
       };
     }
 

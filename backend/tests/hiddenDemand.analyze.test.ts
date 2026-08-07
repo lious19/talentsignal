@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeOpportunitiesPool } from "./helpers/fakeOpportunitiesPool";
-import { salesAuthHeader } from "./helpers/authHeader";
+import { adminAuthHeader, recruiterAuthHeader, salesAuthHeader } from "./helpers/authHeader";
 import type { MarketSignal, MarketSignalProvider } from "../src/adapters/marketSignalProvider";
 
 const SIGNAL: MarketSignal = {
@@ -87,6 +87,31 @@ describe("POST /api/hidden-demand/analyze", () => {
     });
     expect(second.body.opportunities.map(pick)).toEqual(first.body.opportunities.map(pick));
   });
+
+  // 06_decisions/022: admin/sales only (S-04: "As a sales rep...").
+  it("rejects a recruiter role with 403", async () => {
+    const { pool } = createFakeOpportunitiesPool();
+    const app = createApp(pool, fixedProvider([SIGNAL]));
+
+    const res = await request(app)
+      .post("/api/hidden-demand/analyze")
+      .set("Authorization", recruiterAuthHeader());
+
+    expect(res.status).toBe(403);
+  });
+
+  // Admin is never excluded by any row in the matrix — representative
+  // coverage for that guarantee, checked here rather than once per route.
+  it("admin succeeds regardless of the route's role restriction", async () => {
+    const { pool } = createFakeOpportunitiesPool();
+    const app = createApp(pool, fixedProvider([SIGNAL]));
+
+    const res = await request(app)
+      .post("/api/hidden-demand/analyze")
+      .set("Authorization", adminAuthHeader());
+
+    expect(res.status).toBe(201);
+  });
 });
 
 describe("GET /api/hidden-demand/opportunities", () => {
@@ -111,5 +136,16 @@ describe("GET /api/hidden-demand/opportunities", () => {
     expect(res.status).toBe(200);
     expect(res.body.opportunities).toHaveLength(1);
     expect(res.body.opportunities[0].source).toBe("mock-job-board");
+  });
+
+  it("rejects a recruiter role with 403 (06_decisions/022)", async () => {
+    const { pool } = createFakeOpportunitiesPool();
+    const app = createApp(pool, fixedProvider([SIGNAL]));
+
+    const res = await request(app)
+      .get("/api/hidden-demand/opportunities")
+      .set("Authorization", recruiterAuthHeader());
+
+    expect(res.status).toBe(403);
   });
 });
