@@ -6,6 +6,13 @@ export function createPool(): Pool {
     connectionTimeoutMillis: 5_000,
     statement_timeout: 5_000,
     idleTimeoutMillis: 30_000,
+    // Off by default (06_decisions/023): the demo's app<->Postgres traffic
+    // stays inside the Docker Compose private network, never encrypted
+    // today. This exists so a production deployment against a
+    // network-separated Postgres can turn on TLS via one env var, without
+    // a code change — it is not itself proof that transit encryption is
+    // running anywhere right now.
+    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : undefined,
   });
 }
 

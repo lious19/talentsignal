@@ -57,3 +57,6 @@ The observation that should make us revisit it.
 | 019 | Recommendation feedback: upsert-latest vs. append-only history, given TBI's "over time" language | S-11 | **hard — ask Ali** |
 | 020 | Analytics KPI definitions (placements/time-to-hire/demand score) — proposed, pending Ali | S-12 | **hard — ask Ali** |
 | 020 | **No Analytics table built — DEVIATES from Ali's build note, which explicitly asked for one.** Computed on the fly instead. Reversible if he wants the table. | S-12 | **hard — ask Ali, veto-able at the gate** |
+| 023 | Consent default `true` (opt-out), not the GDPR-faithful opt-in — a documented pragmatic exception (no consent-collection UX exists yet); the revoke round-trip, not the default, is the real trust proof | S-15 | **hard — ask Ali** |
+| 023 | Erasure/access scoped to the registry's primary-row entries only — embedded copies elsewhere (e.g. `opportunity_packages.content`) are a known, stated limitation, not chased down | S-15 | soft |
+| 023 | Encryption: off-by-default `DATABASE_SSL` flag + honest demo-vs-production documentation, nothing fabricated | S-15 | soft |

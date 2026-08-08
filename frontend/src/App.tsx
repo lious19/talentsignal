@@ -11,6 +11,7 @@ import { PackageReviewScreen } from "./PackageReviewScreen";
 import { RelationshipsPanel } from "./RelationshipsPanel";
 import { RecommendationScreen } from "./RecommendationScreen";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { PrivacyRequestScreen } from "./PrivacyRequestScreen";
 import { RoleGate } from "./RoleGate";
 import { clearStoredToken, getStoredToken } from "./auth";
 
@@ -101,6 +102,12 @@ export function App() {
           </RoleGate>
           <RoleGate allow={["admin", "sales", "recruiter"]}>
             <AnalyticsDashboard />
+          </RoleGate>
+          {/* Staff-initiated privacy workflow, not a candidate-facing
+              portal — there is no candidate login anywhere in this app
+              (06_decisions/023). */}
+          <RoleGate allow={["admin", "recruiter"]}>
+            <PrivacyRequestScreen />
           </RoleGate>
         </>
       ) : authView === "login" ? (
