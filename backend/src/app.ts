@@ -18,6 +18,7 @@ import { recommendationEngineRouter } from "./routes/recommendationEngine";
 import { analyticsRouter } from "./routes/analytics";
 import { predictiveAnalysisRouter } from "./routes/predictiveAnalysis";
 import { privacyRouter } from "./routes/privacy";
+import { crmWriteRouter } from "./routes/crmWrite";
 import type { MarketSignalProvider } from "./adapters/marketSignalProvider";
 import { LoggingPipelineNotifier, type PipelineNotifier } from "./adapters/pipelineNotifier";
 
@@ -52,6 +53,7 @@ export function createApp(
   app.use("/api", analyticsRouter(pool));
   app.use("/api", predictiveAnalysisRouter(pool));
   app.use("/api", privacyRouter(pool));
+  app.use("/api", crmWriteRouter(pool));
 
   return app;
 }

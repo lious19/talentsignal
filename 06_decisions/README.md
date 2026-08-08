@@ -60,3 +60,5 @@ The observation that should make us revisit it.
 | 023 | Consent default `true` (opt-out), not the GDPR-faithful opt-in — a documented pragmatic exception (no consent-collection UX exists yet); the revoke round-trip, not the default, is the real trust proof | S-15 | **hard — ask Ali** |
 | 023 | Erasure/access scoped to the registry's primary-row entries only — embedded copies elsewhere (e.g. `opportunity_packages.content`) are a known, stated limitation, not chased down | S-15 | soft |
 | 023 | Encryption: off-by-default `DATABASE_SSL` flag + honest demo-vs-production documentation, nothing fabricated | S-15 | soft |
+| 024 | CRM write role gating (`admin`+`sales`) creates an asymmetry with `clients.ts`'s `PII_VISIBLE_ROLES` (`admin`+`recruiter`) — sales can write contactInfo it can't read elsewhere | S-16 | soft |
+| 024 | **OPEN — can a rollback resurrect data a legitimate S-15 erasure already scrubbed?** `before_image`/`after_image` left unregistered (not `retain_exempt`) on purpose; compliance-faithful lean is erasure should win, not resolved unilaterally | S-16 | **hard — ask Ali** |
