@@ -27,6 +27,13 @@ import { runMigrations } from "./migrate";
  * bakes in one deliberate October 2025 spike (6 closings against a 1–3
  * baseline) so the forecast's outlier flag has something real to catch in
  * the live demo, not just in a unit test.
+ *
+ * Extended again for S-17 (OPEN_ROLES_BY_SUFFIX, below): segmentation
+ * (06_decisions/025) buckets clients by open job_openings count, and this
+ * script seeded zero job_openings rows before now — every client would have
+ * landed in the same "low" bucket, showing nothing real. Purely additive,
+ * same skip-existing discipline: only fires for a client this run actually
+ * inserts, never touches a client that already exists.
  */
 const SEED_PREFIX = "Seed Analytics Client";
 
@@ -34,6 +41,18 @@ interface SeedClient {
   name: string;
   events: Array<{ fromStage: string | null; toStage: string; changedAt: string }>;
 }
+
+// Suffix -> how many open job_openings to seed for that client, spanning all
+// three SEGMENTATION_CONFIG buckets (0-1 low, 2-4 medium, 5+ high) so the
+// live demo shows real segment variety. Every suffix not listed here gets
+// zero — "low" by omission, not a special case.
+const OPEN_ROLES_BY_SUFFIX: Record<string, number> = {
+  "01": 1,
+  "02": 3,
+  "04": 6,
+  "05": 2,
+  "06": 8,
+};
 
 // A one-shot prospecting->closed client, for the S-13 seed extension below,
 // where the only thing that matters is which month the closing lands in.
@@ -148,6 +167,15 @@ async function main(): Promise<void> {
         `INSERT INTO sales_pipeline_audit (client_id, changed_by, from_stage, to_stage, changed_at)
          VALUES ($1, 'seed-analytics-demo', $2, $3, $4)`,
         [clientId, event.fromStage, event.toStage, event.changedAt],
+      );
+    }
+
+    const suffix = seedClient.name.slice(SEED_PREFIX.length + 1);
+    const openRoles = OPEN_ROLES_BY_SUFFIX[suffix] ?? 0;
+    for (let i = 0; i < openRoles; i++) {
+      await pool.query(
+        `INSERT INTO job_openings (client_id, title) VALUES ($1, $2)`,
+        [clientId, `Seed Analytics Role ${i + 1}`],
       );
     }
 

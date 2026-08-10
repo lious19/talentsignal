@@ -62,3 +62,8 @@ The observation that should make us revisit it.
 | 023 | Encryption: off-by-default `DATABASE_SSL` flag + honest demo-vs-production documentation, nothing fabricated | S-15 | soft |
 | 024 | CRM write role gating (`admin`+`sales`) creates an asymmetry with `clients.ts`'s `PII_VISIBLE_ROLES` (`admin`+`recruiter`) — sales can write contactInfo it can't read elsewhere | S-16 | soft |
 | 024 | **OPEN — can a rollback resurrect data a legitimate S-15 erasure already scrubbed?** `before_image`/`after_image` left unregistered (not `retain_exempt`) on purpose; compliance-faithful lean is erasure should win, not resolved unilaterally | S-16 | **hard — ask Ali** |
+| 025 | Revenue KPI has no backing data anywhere in the schema — `placements_per_month` reused as an explicit, named PROXY, not real currency | S-17 | **hard — ask Ali** |
+| 025 | Anomaly threshold "learning" = suppress-only fixed-step widening (+0.5σ, capped at 4σ); confirm is record-only; no auto-narrowing or decay | S-17 | soft |
+| 025 | **OPEN — should a confirmed-anomaly pattern ever narrow the threshold back down, or should it decay over time?** Not built; flagged as a real scope question | S-17 | **hard — ask Ali** |
+| 025 | Segmentation dimension = hiring volume (open `job_openings` count), advisory only, no new table | S-17 | soft |
+| 025 | `/decide` role-gated narrower (`admin`/`sales`) than the `GET` view (`admin`/`sales`/`recruiter`), matching decision 024's write-guard precedent | S-17 | soft |
