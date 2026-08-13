@@ -114,6 +114,15 @@ input:focus, select:focus, textarea:focus{
   border-color:rgba(0,240,255,.6); box-shadow:0 0 0 3px rgba(0,240,255,.15);
 }
 input::placeholder, textarea::placeholder{ color:#5a6390; }
+/* keep Chrome autofill on-theme instead of its pale default */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--ink);
+  -webkit-box-shadow:0 0 0 1000px var(--field) inset;
+  caret-color:var(--ink);
+  transition:background-color 9999s ease-in-out 0s;
+}
 form > div{ margin-bottom:.7rem; }
 
 /* ---- buttons: neon ---- */
