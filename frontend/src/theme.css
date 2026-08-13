@@ -1,0 +1,172 @@
+/* ============================================================
+   TalentSignal — cyberpunk theme (global, non-invasive)
+   Styles the app purely by element + aria selectors, so no
+   component JSX or logic changes. Delete this file and its
+   import in main.tsx to fully revert.
+   ============================================================ */
+
+:root{
+  --bg:#07060f; --bg2:#0d0a1f;
+  --cyan:#00f0ff; --pink:#ff2a6d; --purple:#b14aed; --lime:#c6ff00;
+  --ink:#eaf6ff; --mute:#8a93b8; --line:#251b45;
+  --panel:#140e2d; --panel2:#1b1440; --field:#0b0820;
+  --radius:14px;
+}
+
+*{ box-sizing:border-box; }
+
+html,body,#root{ height:100%; }
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(177,74,237,.18), transparent 42%),
+    radial-gradient(circle at 88% 92%, rgba(0,240,255,.14), transparent 46%),
+    linear-gradient(var(--bg2), var(--bg));
+  background-attachment:fixed;
+  min-height:100vh;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* faint grid overlay, like the pitch deck */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:
+    linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,.05) 1px, transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:linear-gradient(transparent, #000 30%, #000 75%, transparent);
+          mask-image:linear-gradient(transparent, #000 30%, #000 75%, transparent);
+}
+
+/* ---- main column ---- */
+main{
+  position:relative; z-index:1;
+  max-width:1040px;
+  margin:0 auto;
+  padding:2.2rem 1.5rem 5rem;
+  display:block;
+}
+
+/* ---- app title ---- */
+main > h1{
+  font-size:clamp(30px,4.4vw,52px);
+  font-weight:800;
+  letter-spacing:-.02em;
+  margin:0 0 1.1rem;
+  color:var(--cyan);
+  text-shadow:0 0 24px rgba(0,240,255,.5), 0 0 60px rgba(0,240,255,.2);
+}
+
+/* ---- backend health: slim status pill, not a big card ---- */
+section[aria-label="backend health"]{
+  display:inline-flex; align-items:center; gap:.5em;
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:999px; padding:.3em .95em; margin:0 0 1.6rem;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  font-size:12.5px; color:var(--mute);
+}
+section[aria-label="backend health"] p{ margin:0; }
+section[aria-label="backend health"] p::before{
+  content:"●"; color:var(--lime); margin-right:.5em; font-size:1.1em; vertical-align:-1px;
+}
+
+/* ---- every screen renders inside a section[aria-label]: make each a card ---- */
+section[aria-label]{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:1.4rem 1.5rem;
+  margin:0 0 1.3rem;
+  box-shadow:0 18px 46px rgba(0,0,0,.4);
+  position:relative; z-index:1;
+}
+/* keep the health pill exempt from the card treatment above */
+section[aria-label="backend health"]{ box-shadow:none; padding:.3em .95em; }
+
+/* ---- headings ---- */
+h2{
+  font-size:clamp(19px,2vw,26px); font-weight:750; letter-spacing:-.01em;
+  margin:0 0 .8rem; color:var(--cyan);
+  border-bottom:1px solid var(--line); padding-bottom:.45rem;
+}
+h3{ font-size:clamp(15px,1.5vw,20px); color:var(--purple); margin:1rem 0 .5rem; }
+h4{ font-size:14px; color:var(--mute); text-transform:uppercase; letter-spacing:.08em;
+  font-family:ui-monospace,Menlo,monospace; margin:.8rem 0 .4rem; }
+
+p{ margin:.5rem 0; }
+
+/* ---- labels + form fields ---- */
+label{
+  display:inline-block; font-size:12px; letter-spacing:.09em; text-transform:uppercase;
+  font-family:ui-monospace,Menlo,monospace; color:var(--mute); margin:.7rem 0 .3rem;
+}
+input, select, textarea{
+  background:var(--field); color:var(--ink);
+  border:1px solid var(--line); border-radius:9px;
+  padding:.6em .75em; font-size:15px; font-family:inherit;
+  min-width:240px; max-width:100%; outline:none; transition:.15s;
+}
+input:focus, select:focus, textarea:focus{
+  border-color:rgba(0,240,255,.6); box-shadow:0 0 0 3px rgba(0,240,255,.15);
+}
+input::placeholder, textarea::placeholder{ color:#5a6390; }
+form > div{ margin-bottom:.7rem; }
+
+/* ---- buttons: neon ---- */
+button{
+  font-family:inherit; font-weight:700; font-size:14px; cursor:pointer;
+  color:#04121a; background:linear-gradient(90deg,var(--cyan),#38bdf8);
+  border:none; border-radius:9px; padding:.6em 1.15em; margin:.15rem .4rem .15rem 0;
+  box-shadow:0 0 20px rgba(0,240,255,.22); transition:.15s;
+}
+button:hover:not(:disabled){ filter:brightness(1.08); transform:translateY(-1px); }
+button:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none;
+  background:var(--panel2); color:var(--mute); }
+/* secondary buttons (type=button: Register / Log out / cancels) */
+button[type="button"]{
+  background:transparent; color:var(--cyan);
+  border:1px solid rgba(0,240,255,.45); box-shadow:none;
+}
+button[type="button"]:hover:not(:disabled){ background:rgba(0,240,255,.08); }
+
+/* ---- tables ---- */
+table{ width:100%; border-collapse:collapse; margin:.6rem 0; font-size:14px; }
+th, td{ text-align:left; padding:.6em .7em; border-bottom:1px solid var(--line); }
+th{ color:var(--mute); font-family:ui-monospace,Menlo,monospace; font-size:12px;
+  letter-spacing:.06em; text-transform:uppercase; }
+tbody tr{ transition:.12s; }
+tbody tr:hover{ background:rgba(0,240,255,.05); }
+
+/* ---- lists ---- */
+ul, ol{ margin:.5rem 0; padding-left:1.3rem; }
+li{ margin:.3rem 0; }
+
+/* ---- links ---- */
+a{ color:var(--cyan); text-decoration:none; border-bottom:1px solid rgba(0,240,255,.3); }
+a:hover{ border-bottom-color:var(--cyan); }
+
+/* ---- alerts / errors ---- */
+[role="alert"]{
+  color:#ffd0dd; background:rgba(255,42,109,.12);
+  border:1px solid rgba(255,42,109,.45); border-left:4px solid var(--pink);
+  border-radius:9px; padding:.7em .9em; margin:.7rem 0;
+}
+
+/* ---- code / mono ---- */
+code, pre, .mono{ font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+code{ background:var(--field); border:1px solid var(--line); border-radius:5px; padding:.1em .4em; font-size:.9em; }
+pre{ background:var(--field); border:1px solid var(--line); border-radius:10px; padding:1em; overflow:auto; }
+
+/* ---- small print ---- */
+small{ color:var(--mute); }
+hr{ border:none; border-top:1px solid var(--line); margin:1.1rem 0; }
+
+/* ---- scrollbar flourish ---- */
+*::-webkit-scrollbar{ width:11px; height:11px; }
+*::-webkit-scrollbar-track{ background:var(--bg); }
+*::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+*::-webkit-scrollbar-thumb:hover{ background:#3a2b63; }
