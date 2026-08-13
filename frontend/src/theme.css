@@ -142,6 +142,29 @@ button[type="button"]{
 }
 button[type="button"]:hover:not(:disabled){ background:rgba(0,240,255,.08); }
 
+/* ---- sticky app bar + top navigation ---- */
+.appbar{
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+  background:rgba(10,8,26,.9); backdrop-filter:blur(8px);
+  border:1px solid var(--line); border-radius:14px;
+  padding:.65rem 1.1rem; margin-bottom:1rem;
+}
+.appbar h1{ margin:0; font-size:clamp(20px,2.4vw,30px); }
+.appbar section[aria-label="backend health"]{ margin:0; }
+.appbar > button{ margin-left:auto; }
+
+.topnav{ display:flex; flex-wrap:wrap; gap:.4rem; margin:0 0 1.4rem; }
+.topnav .navbtn{
+  background:transparent; color:var(--mute); border:1px solid transparent;
+  box-shadow:none; font-weight:600; padding:.5em .95em; border-radius:9px;
+}
+.topnav .navbtn:hover{ color:var(--ink); background:var(--panel2); transform:none; }
+.topnav .navbtn.on{
+  color:var(--cyan); background:rgba(0,240,255,.1);
+  border-color:rgba(0,240,255,.4); box-shadow:0 0 14px rgba(0,240,255,.12);
+}
+
 /* ---- tables ---- */
 table{ width:100%; border-collapse:collapse; margin:.6rem 0; font-size:14px; }
 th, td{ text-align:left; padding:.6em .7em; border-bottom:1px solid var(--line); }
