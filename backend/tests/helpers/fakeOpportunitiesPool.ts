@@ -6,6 +6,7 @@ export interface FakeOpportunityRow {
   source: string;
   external_signal_id: string;
   company: string;
+  title: string;
   confidence_score: string;
   reasons: string[];
   weights_version: string;
@@ -39,10 +40,10 @@ export function createFakeOpportunitiesPool() {
     if (sql.includes("INSERT INTO opportunities")) {
       const [
         sources, externalIds, companies, scores, reasonsJoined, weightsVersions, breakdownsJson,
-        htfScores, htfReasonsJoined, htfBreakdownsJson, htfVersions, delimiter,
+        htfScores, htfReasonsJoined, htfBreakdownsJson, htfVersions, titles, delimiter,
       ] = params as [
         string[], string[], string[], number[], string[], string[], string[],
-        number[], string[], string[], string[], string,
+        number[], string[], string[], string[], string[], string,
       ];
       const now = new Date().toISOString();
       const returned: FakeOpportunityRow[] = [];
@@ -51,6 +52,7 @@ export function createFakeOpportunitiesPool() {
         const source = sources[i];
         const externalSignalId = externalIds[i];
         const company = companies[i];
+        const title = titles[i];
         const confidenceScore = scores[i];
         const reasons = reasonsJoined[i].split(delimiter);
         const weightsVersion = weightsVersions[i];
@@ -69,6 +71,7 @@ export function createFakeOpportunitiesPool() {
         );
         if (existing) {
           existing.confidence_score = String(confidenceScore);
+          existing.title = title;
           existing.reasons = reasons;
           existing.weights_version = weightsVersion;
           existing.factor_breakdown = factorBreakdown;
@@ -85,6 +88,7 @@ export function createFakeOpportunitiesPool() {
           source,
           external_signal_id: externalSignalId,
           company,
+          title,
           confidence_score: String(confidenceScore),
           reasons,
           weights_version: weightsVersion,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { OpportunitiesList } from "./OpportunitiesList";
+import { HardToFillTargeting } from "./HardToFillTargeting";
 import { LoginScreen } from "./LoginScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { ClientsScreen } from "./ClientsScreen";
@@ -96,6 +97,7 @@ export function App() {
               so a role only ever sees tabs it is allowed to open. */}
           <nav className="topnav" aria-label="sections">
             <RoleGate allow={["admin", "sales"]}>{navBtn("opportunities", "Opportunities")}</RoleGate>
+            <RoleGate allow={["admin", "sales"]}>{navBtn("targeting", "Targeting")}</RoleGate>
             <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("clients", "Clients")}</RoleGate>
             <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("candidates", "Candidates")}</RoleGate>
             <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("jobs", "Jobs")}</RoleGate>
@@ -115,6 +117,14 @@ export function App() {
               <section aria-label="opportunities">
                 <h2>Opportunities</h2>
                 <OpportunitiesList />
+              </section>
+            </RoleGate>
+          </div>
+          <div hidden={view !== "targeting"}>
+            <RoleGate allow={["admin", "sales"]}>
+              <section aria-label="hard-to-fill targeting">
+                <h2>Hard-to-fill targeting</h2>
+                <HardToFillTargeting />
               </section>
             </RoleGate>
           </div>

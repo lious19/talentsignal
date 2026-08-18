@@ -11,6 +11,7 @@ import { clientsRouter } from "./routes/clients";
 import { candidatesRouter } from "./routes/candidates";
 import { jobOpeningsRouter } from "./routes/jobOpenings";
 import { clientMatchmakingRouter } from "./routes/clientMatchmaking";
+import { hardToFillTargetingRouter } from "./routes/hardToFillTargeting";
 import { salesPipelineRouter } from "./routes/salesPipeline";
 import { opportunityPackageRouter } from "./routes/opportunityPackage";
 import { opportunityRelationshipsRouter } from "./routes/opportunityRelationships";
@@ -47,6 +48,7 @@ export function createApp(
   app.use("/api", candidatesRouter(pool));
   app.use("/api", jobOpeningsRouter(pool));
   app.use("/api", clientMatchmakingRouter(pool));
+  app.use("/api", hardToFillTargetingRouter(pool));
   app.use("/api", salesPipelineRouter(pool, notifier));
   app.use("/api", opportunityPackageRouter(pool));
   app.use("/api", opportunityRelationshipsRouter(pool));

@@ -30,6 +30,7 @@ export interface OpportunityRow {
   source: string;
   external_signal_id: string;
   company: string;
+  title: string;
   confidence_score: string;
   reasons: string[];
   weights_version: string;
@@ -56,6 +57,7 @@ export function toOpportunityResponse(row: OpportunityRow) {
   return {
     id: row.id,
     company: row.company,
+    title: row.title,
     confidenceScore: Number(row.confidence_score),
     reasons: row.reasons,
     weightsVersion: row.weights_version,
@@ -125,6 +127,7 @@ async function upsertBatch(
   const sources: string[] = [];
   const externalIds: string[] = [];
   const companies: string[] = [];
+  const titles: string[] = [];
   const scores: number[] = [];
   const reasonsJoined: string[] = [];
   const weightsVersions: string[] = [];
@@ -145,6 +148,7 @@ async function upsertBatch(
     sources.push(signal.source);
     externalIds.push(signal.externalId);
     companies.push(signal.company);
+    titles.push(signal.title);
     scores.push(score);
     reasonsJoined.push(reasons.join(REASONS_DELIMITER));
     weightsVersions.push(weightsVersion);
@@ -157,26 +161,28 @@ async function upsertBatch(
 
   const { rows } = await pool.query(
     `INSERT INTO opportunities
-       (source, external_signal_id, company, confidence_score, reasons, weights_version, factor_breakdown,
+       (source, external_signal_id, company, title, confidence_score, reasons, weights_version, factor_breakdown,
         hard_to_fill_score, hard_to_fill_reasons, hard_to_fill_factors, hard_to_fill_version)
      SELECT
        src.source,
        src.external_signal_id,
        src.company,
+       src.title,
        src.confidence_score,
-       string_to_array(src.reasons_joined, $12),
+       string_to_array(src.reasons_joined, $13),
        src.weights_version,
        src.factor_breakdown,
        src.hard_to_fill_score,
-       string_to_array(src.htf_reasons_joined, $12),
+       string_to_array(src.htf_reasons_joined, $13),
        src.hard_to_fill_factors,
        src.hard_to_fill_version
      FROM unnest($1::text[], $2::text[], $3::text[], $4::numeric[], $5::text[], $6::text[], $7::jsonb[],
-                 $8::numeric[], $9::text[], $10::jsonb[], $11::text[])
+                 $8::numeric[], $9::text[], $10::jsonb[], $11::text[], $12::text[])
        AS src(source, external_signal_id, company, confidence_score, reasons_joined, weights_version, factor_breakdown,
-              hard_to_fill_score, htf_reasons_joined, hard_to_fill_factors, hard_to_fill_version)
+              hard_to_fill_score, htf_reasons_joined, hard_to_fill_factors, hard_to_fill_version, title)
      ON CONFLICT (source, external_signal_id)
      DO UPDATE SET confidence_score = EXCLUDED.confidence_score,
+                   title = EXCLUDED.title,
                    reasons = EXCLUDED.reasons,
                    weights_version = EXCLUDED.weights_version,
                    factor_breakdown = EXCLUDED.factor_breakdown,
@@ -198,6 +204,7 @@ async function upsertBatch(
       htfReasonsJoined,
       htfBreakdownsJson,
       htfVersions,
+      titles,
       REASONS_DELIMITER,
     ],
   );
