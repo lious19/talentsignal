@@ -9,7 +9,11 @@ import type { FetchSignalsOptions, MarketSignal, MarketSignalProvider } from "./
  */
 export class MockJobBoardProvider implements MarketSignalProvider {
   async fetchSignals(_options: FetchSignalsOptions): Promise<MarketSignal[]> {
-    const signal: MarketSignal = {
+    // Two fixed signals so the demo shows the contrast HF-2 exists to surface:
+    // one generic role that is NOT flagged hard-to-fill, and one scarce role
+    // (a "data analyst", exactly Ali's Aug 17 example) that IS. Deterministic,
+    // no randomness — the demo and any manual check always see the same board.
+    const genericRole: MarketSignal = {
       source: "mock-job-board",
       externalId: "jb-1001",
       company: "Acme Corp",
@@ -18,6 +22,15 @@ export class MockJobBoardProvider implements MarketSignalProvider {
       isRepost: true,
       hasSalaryRange: false,
     };
-    return [signal];
+    const hardToFillRole: MarketSignal = {
+      source: "mock-job-board",
+      externalId: "jb-1002",
+      company: "Insight Analytics",
+      title: "Senior Data Analyst",
+      daysOpen: 30,
+      isRepost: true,
+      hasSalaryRange: false,
+    };
+    return [genericRole, hardToFillRole];
   }
 }
