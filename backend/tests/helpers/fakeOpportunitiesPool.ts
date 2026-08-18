@@ -10,6 +10,12 @@ export interface FakeOpportunityRow {
   reasons: string[];
   weights_version: string;
   factor_breakdown: unknown[];
+  // HF-2 (migration 013): the second, independent score, mirroring the
+  // confidence columns above so this fake stays faithful to the real row shape.
+  hard_to_fill_score: string;
+  hard_to_fill_reasons: string[];
+  hard_to_fill_factors: unknown[];
+  hard_to_fill_version: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,8 +37,13 @@ export function createFakeOpportunitiesPool() {
 
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (sql.includes("INSERT INTO opportunities")) {
-      const [sources, externalIds, companies, scores, reasonsJoined, weightsVersions, breakdownsJson, delimiter] =
-        params as [string[], string[], string[], number[], string[], string[], string[], string];
+      const [
+        sources, externalIds, companies, scores, reasonsJoined, weightsVersions, breakdownsJson,
+        htfScores, htfReasonsJoined, htfBreakdownsJson, htfVersions, delimiter,
+      ] = params as [
+        string[], string[], string[], number[], string[], string[], string[],
+        number[], string[], string[], string[], string,
+      ];
       const now = new Date().toISOString();
       const returned: FakeOpportunityRow[] = [];
 
@@ -47,6 +58,11 @@ export function createFakeOpportunitiesPool() {
         // query — this fake has to imitate that itself since it never
         // actually goes through Postgres.
         const factorBreakdown = JSON.parse(breakdownsJson[i]);
+        // HF-2: same round-trip as the confidence columns above.
+        const hardToFillScoreValue = String(htfScores[i]);
+        const hardToFillReasons = htfReasonsJoined[i].split(delimiter);
+        const hardToFillFactors = JSON.parse(htfBreakdownsJson[i]);
+        const hardToFillVersion = htfVersions[i];
 
         const existing = rows.find(
           (r) => r.source === source && r.external_signal_id === externalSignalId,
@@ -56,6 +72,10 @@ export function createFakeOpportunitiesPool() {
           existing.reasons = reasons;
           existing.weights_version = weightsVersion;
           existing.factor_breakdown = factorBreakdown;
+          existing.hard_to_fill_score = hardToFillScoreValue;
+          existing.hard_to_fill_reasons = hardToFillReasons;
+          existing.hard_to_fill_factors = hardToFillFactors;
+          existing.hard_to_fill_version = hardToFillVersion;
           existing.updated_at = now;
           returned.push(existing);
           continue;
@@ -69,6 +89,10 @@ export function createFakeOpportunitiesPool() {
           reasons,
           weights_version: weightsVersion,
           factor_breakdown: factorBreakdown,
+          hard_to_fill_score: hardToFillScoreValue,
+          hard_to_fill_reasons: hardToFillReasons,
+          hard_to_fill_factors: hardToFillFactors,
+          hard_to_fill_version: hardToFillVersion,
           created_at: now,
           updated_at: now,
         };

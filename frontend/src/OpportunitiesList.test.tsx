@@ -10,6 +10,23 @@ const OPPORTUNITY = {
   source: "mock-job-board",
 };
 
+// HF-2: a flagged opportunity, shaped exactly like the backend response
+// (hardToFill true + score/reasons/factors/version alongside confidence).
+const HARD_TO_FILL_OPPORTUNITY = {
+  ...OPPORTUNITY,
+  id: "opp-htf",
+  company: "Insight Analytics",
+  hardToFill: true,
+  hardToFillScore: 1.0,
+  hardToFillReasons: ["in-demand role type", "open 30 days", "reposted role"],
+  hardToFillVersion: "hard-to-fill-026-v1",
+  hardToFillFactors: [
+    { factor: "roleScarcity", weight: 0.6, value: 1, contribution: 0.6 },
+    { factor: "daysOpen", weight: 0.2, value: 1, contribution: 0.2 },
+    { factor: "repostedRole", weight: 0.2, value: 1, contribution: 0.2 },
+  ],
+};
+
 describe("OpportunitiesList", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -141,5 +158,61 @@ describe("OpportunitiesList", () => {
     await waitFor(() =>
       expect(screen.getByText(/Could not load opportunities/i)).toBeInTheDocument(),
     );
+  });
+
+  it("badges a hard-to-fill opportunity WITH its reason, never a bare badge (HF-2 trust)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [HARD_TO_FILL_OPPORTUNITY] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Insight Analytics")).toBeInTheDocument());
+    const item = screen.getByText("Insight Analytics").closest("li");
+    // The badge and its reason appear together — never a flag without the why.
+    expect(item).toHaveTextContent("hard to fill: in-demand role type, open 30 days, reposted role");
+  });
+
+  it("shows NO hard-to-fill badge for an un-flagged opportunity", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [OPPORTUNITY] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    const item = screen.getByText("Acme Corp").closest("li");
+    expect(item).not.toHaveTextContent("hard to fill");
+  });
+
+  it("shows the hard-to-fill factor breakdown (HF-1 transparency carried through HF-2)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [HARD_TO_FILL_OPPORTUNITY] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Insight Analytics")).toBeInTheDocument());
+    const item = screen.getByText("Insight Analytics").closest("li");
+    expect(item).toHaveTextContent("Why hard to fill (weights hard-to-fill-026-v1)");
+    expect(item).toHaveTextContent("roleScarcity: weight 0.6, value 1, contributes 0.6");
   });
 });

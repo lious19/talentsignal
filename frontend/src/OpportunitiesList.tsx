@@ -20,6 +20,15 @@ interface Opportunity {
   // not-audited rather than silently blank.
   factors?: ScoreFactor[];
   weightsVersion?: string;
+  // HF-2: present on freshly scored opportunities; absent on pre-013
+  // backfilled rows (which read as "not flagged"), so every field is optional
+  // and guarded below. hardToFill is the backend's derived badge boolean
+  // (score >= the PROPOSED threshold, 06_decisions/026).
+  hardToFill?: boolean;
+  hardToFillScore?: number;
+  hardToFillReasons?: string[];
+  hardToFillFactors?: ScoreFactor[];
+  hardToFillVersion?: string;
 }
 
 type OpportunitiesState =
@@ -91,6 +100,19 @@ export function OpportunitiesList() {
           <span>{opportunity.reasons.join(", ")}</span>
           {" · "}
           <span>source: {opportunity.source}</span>
+          {/* HF-2 trust scenario: never a bare badge. The flag only renders
+              WITH its reason attached in the same breath, so a manager sees
+              "hard to fill: <why>" as one unit and can trust or dismiss it.
+              Only shown when the backend flagged it (score cleared the 026
+              threshold); an un-flagged or pre-013 row shows nothing here. */}
+          {opportunity.hardToFill && opportunity.hardToFillReasons && opportunity.hardToFillReasons.length > 0 && (
+            <>
+              {" · "}
+              <span aria-label="hard to fill">
+                🔴 hard to fill: {opportunity.hardToFillReasons.join(", ")}
+              </span>
+            </>
+          )}
           {/* Native <details>/<summary> gives expand/collapse via built-in
               browser state — no useState needed, since the data is already
               part of the fetched opportunity object (S-07 trust scenario:
@@ -112,6 +134,27 @@ export function OpportunitiesList() {
               <p>No factor breakdown recorded (scored before S-07).</p>
             )}
           </details>
+          {/* The full weighted breakdown behind the hard-to-fill flag, same
+              inspectable shape as the confidence one above (HF-1 trust
+              scenario carried through: each indicator's weight, value, and
+              contribution, never a bare score). */}
+          {opportunity.hardToFill &&
+            opportunity.hardToFillFactors &&
+            opportunity.hardToFillFactors.length > 0 && (
+              <details>
+                <summary>
+                  Why hard to fill
+                  {opportunity.hardToFillVersion ? ` (weights ${opportunity.hardToFillVersion})` : ""}
+                </summary>
+                <ul>
+                  {opportunity.hardToFillFactors.map((f) => (
+                    <li key={f.factor}>
+                      {f.factor}: weight {f.weight}, value {f.value}, contributes {f.contribution}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
         </li>
       ))}
     </ul>
