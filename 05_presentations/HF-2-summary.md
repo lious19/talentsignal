@@ -1,8 +1,13 @@
 # HF-2 — Tie the hard-to-fill score into opportunities & surface it
 
+![HF-2 — the hard-to-fill badge on the live Opportunities screen](HF-2-opportunities-board.jpg)
+
+*Live demo (Docker stack, migration 013 applied against Postgres): the Senior Data Analyst
+opportunity is flagged "hard to fill" with its reason inline; the recruiter role is not.*
+
 **Status:** Built & verified (commit `1d148a6`). Backend 252 tests pass, frontend 32 pass,
-both typechecks clean. Depends on HF-1; role list/weights/threshold still **PROPOSED**
-pending Ali (`06_decisions/026`).
+both typechecks clean. Depends on HF-1; role list/weights/threshold are **PROPOSED but
+cleared to proceed for now** (Ali, 2026-08-18 — `06_decisions/026`).
 
 ## What it does (plain English)
 HF-1 could already answer "how hard is this role to fill?" for a single signal, but that

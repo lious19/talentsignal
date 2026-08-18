@@ -1,8 +1,14 @@
 # HF-1 — Hard-to-fill indicator & score
 
+![HF-1 factor breakdown, shown through HF-2's Opportunities surface](HF-2-hard-to-fill-breakdown.jpg)
+
+*HF-1 has no UI of its own; this is HF-2's Opportunities screen expanding the hard-to-fill
+score into HF-1's factor breakdown — roleScarcity 0.6 + daysOpen 0.2 + repostedRole 0.2 = 1.0.*
+
 **Status:** Built & verified (commit `2663411`). 17 unit tests pass
 (`backend/tests/hardToFillScore.test.ts`). Role list / weights / threshold are
-**PROPOSED**, pending Ali (`06_decisions/026`). Consumed by HF-2.
+**PROPOSED but cleared to proceed for now** (Ali, 2026-08-18 — `06_decisions/026`).
+Consumed by HF-2.
 
 ## What it does (plain English)
 Answers a question the platform couldn't before: "how hard is this role to fill?"

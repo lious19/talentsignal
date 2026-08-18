@@ -90,3 +90,17 @@ punctuation-sensitive — that's a real gap to fix in `matchesScarceRole`, not s
 silently patch around. If Ali says role scarcity shouldn't dominate the formula, or that
 a generic role should carry some nonzero baseline after all, that's a real disagreement
 to have explicitly, same as decision 007's base-score caveat.
+
+
+---
+
+## Update — 2026-08-18: cleared to proceed (interim)
+Ali reviewed the running HF-1/HF-2 demo and said, verbatim: *"i saw it - you can proceed
+with those numbers for now."* (relayed by Megan, 2026-08-18).
+
+Interpretation, stated explicitly rather than assumed: this is a **go-ahead to keep building
+on the PROPOSED numbers** — the role-keyword list, the 0.60 / 0.20 / 0.20 weights, and the
+0.50 threshold — **not** a different set of numbers to swap in. Ali did not supply his own
+values, so nothing in `hardToFillConfig.ts` changes. Status moves from "PROPOSED, blocking"
+to **"PROPOSED, cleared to proceed for now."** If Ali later hands over a specific list /
+weights / threshold, that stays a one-line edit here plus a new dated note.
