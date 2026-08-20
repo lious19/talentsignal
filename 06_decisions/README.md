@@ -67,3 +67,5 @@ The observation that should make us revisit it.
 | 025 | **OPEN — should a confirmed-anomaly pattern ever narrow the threshold back down, or should it decay over time?** Not built; flagged as a real scope question | S-17 | **hard — ask Ali** |
 | 025 | Segmentation dimension = hiring volume (open `job_openings` count), advisory only, no new table | S-17 | soft |
 | 025 | `/decide` role-gated narrower (`admin`/`sales`) than the `GET` view (`admin`/`sales`/`recruiter`), matching decision 024's write-guard precedent | S-17 | soft |
+| 028 | Concurrency ladder (1/10/50/100/250/500), `DB_POOL_MAX` comparison value (20), `SEED_SIGNAL_COUNT` (2000), and CI-guard deferral to S-19 — all proposed, awaiting Ali | S-18 | soft |
+| 028 | Hard-to-fill targeting seed-visibility fix (`includeSeedData` opt-in + seed-title keyword variation) — proposal drafted, awaiting Ali | S-18 | soft |

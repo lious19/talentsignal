@@ -102,6 +102,32 @@ describe("GET /api/hard-to-fill/targeting", () => {
     expect(res.body.targets).toEqual([]);
   });
 
+  // S-18 / 06_decisions/028: mirrors hiddenDemand.ts's /opportunities opt-in
+  // exactly, so load-test/demo runs can see seed-sourced hard-to-fill
+  // opportunities at volume without a separate fixture-insert path.
+  it("excludes seed-job-board opportunities by default, includes them with ?includeSeedData=true", async () => {
+    const fake = createFakeTargetingPool();
+    fake.seedOpportunity({
+      source: "seed-job-board",
+      company: "Seed Co",
+      title: "Data Scientist",
+      hard_to_fill_score: "1",
+    });
+    fake.seedCandidate({ name: "Someone", skills: ["sql"], experience: 2 });
+    const app = createApp(fake.pool, noopProvider);
+
+    const withoutFlag = await request(app)
+      .get("/api/hard-to-fill/targeting")
+      .set("Authorization", salesAuthHeader());
+    expect(withoutFlag.body.targets).toHaveLength(0);
+
+    const withFlag = await request(app)
+      .get("/api/hard-to-fill/targeting?includeSeedData=true")
+      .set("Authorization", salesAuthHeader());
+    expect(withFlag.body.targets).toHaveLength(1);
+    expect(withFlag.body.targets[0].company).toBe("Seed Co");
+  });
+
   // 06_decisions/022: admin/sales only (S-06: "As a sales rep...").
   it("rejects a recruiter role with 403", async () => {
     const { pool } = seedDataAnalystScenario();

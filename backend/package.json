@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",
-    "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts"
+    "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts",
+    "load-test": "tsx scripts/load-test/run.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -20,6 +21,7 @@
     "pino": "^9.3.2"
   },
   "devDependencies": {
+    "autocannon": "^7.15.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",

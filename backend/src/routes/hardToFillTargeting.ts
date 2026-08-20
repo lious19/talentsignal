@@ -69,11 +69,21 @@ export function hardToFillTargetingRouter(pool: Pool): Router {
     requireRole(["admin", "sales"]),
     async (req, res) => {
       try {
+        // Same includeSeedData opt-in as hiddenDemand.ts's /opportunities
+        // route (S-18, 06_decisions/028): seed rows (source =
+        // 'seed-job-board') are excluded by default so they never look like
+        // real targets on the board, but a load-test/demo run needs a way to
+        // see them at volume without a separate fixture-insert path.
+        const includeSeedData = req.query.includeSeedData === "true";
         const [oppResult, candidatesResult] = await Promise.all([
           pool.query(
-            `SELECT id, company, title, hard_to_fill_score, hard_to_fill_reasons
-             FROM opportunities
-             WHERE hard_to_fill_score >= $1 AND source != 'seed-job-board'`,
+            includeSeedData
+              ? `SELECT id, company, title, hard_to_fill_score, hard_to_fill_reasons
+                 FROM opportunities
+                 WHERE hard_to_fill_score >= $1`
+              : `SELECT id, company, title, hard_to_fill_score, hard_to_fill_reasons
+                 FROM opportunities
+                 WHERE hard_to_fill_score >= $1 AND source != 'seed-job-board'`,
             [HARD_TO_FILL_CONFIG.hardToFillThreshold],
           ),
           pool.query("SELECT id, name, skills, experience, availability FROM candidates"),

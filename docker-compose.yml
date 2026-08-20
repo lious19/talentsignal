@@ -32,6 +32,13 @@ services:
       # unset (the default) and no admin account is created.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+      # S-18 (06_decisions/028): all three optional, unset by default so
+      # normal `docker compose up` behavior is unchanged. Set in the shell
+      # or .env before `docker compose up` to run the load-test harness
+      # against real seed volume and/or a larger connection pool.
+      MARKET_SIGNAL_PROVIDER: ${MARKET_SIGNAL_PROVIDER:-}
+      SEED_SIGNAL_COUNT: ${SEED_SIGNAL_COUNT:-}
+      DB_POOL_MAX: ${DB_POOL_MAX:-}
     ports:
       - "${BACKEND_PORT:-4000}:4000"
     depends_on:

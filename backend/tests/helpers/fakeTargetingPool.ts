@@ -62,9 +62,16 @@ export function createFakeTargetingPool() {
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (sql.includes("FROM opportunities") && sql.includes("hard_to_fill_score >=")) {
       const [threshold] = params as [number];
+      // Mirrors the router's two literal SQL strings (S-18, 06_decisions/028):
+      // only the default one excludes source='seed-job-board'. Matching on
+      // the SQL text itself (not a separate flag) keeps this fake honest
+      // about which branch actually ran.
+      const excludesSeedData = sql.includes("source != 'seed-job-board'");
       return {
         rows: opportunities.filter(
-          (o) => o.source !== "seed-job-board" && Number(o.hard_to_fill_score) >= threshold,
+          (o) =>
+            (!excludesSeedData || o.source !== "seed-job-board") &&
+            Number(o.hard_to_fill_score) >= threshold,
         ),
       };
     }

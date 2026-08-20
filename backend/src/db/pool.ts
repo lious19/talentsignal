@@ -6,6 +6,13 @@ export function createPool(): Pool {
     connectionTimeoutMillis: 5_000,
     statement_timeout: 5_000,
     idleTimeoutMillis: 30_000,
+    // Unset by default -> pg's own default of 10, today's real (undocumented
+    // until now) behavior. S-18's load validation found this is the actual
+    // concurrency ceiling for every DB-touching endpoint well below REQ-017's
+    // 1000-concurrent target; DB_POOL_MAX lets a comparison run raise it
+    // without a code change. See 06_decisions/028 for the proposed value and
+    // why it isn't hardcoded higher here.
+    max: process.env.DB_POOL_MAX ? Number(process.env.DB_POOL_MAX) : undefined,
     // Off by default (06_decisions/023): the demo's app<->Postgres traffic
     // stays inside the Docker Compose private network, never encrypted
     // today. This exists so a production deployment against a
