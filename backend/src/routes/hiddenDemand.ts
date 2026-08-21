@@ -118,7 +118,10 @@ const REASONS_DELIMITER = "\u001F";
  * sub-elements that unnest() would otherwise flatten across rows — so a
  * plain jsonb[] array, one parsed JSON document per row, is unambiguous.
  */
-async function upsertBatch(
+// Exported for S-19's seedDemo.ts: reuses the real scorer + upsert path to
+// generate a hard-to-fill opportunity for the demo seed, instead of
+// hand-rolling a second, guessable score. See 06_decisions/029.
+export async function upsertBatch(
   pool: Pool,
   signals: MarketSignal[],
 ): Promise<ReturnType<typeof toOpportunityResponse>[]> {

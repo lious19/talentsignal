@@ -8,7 +8,9 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",
+    "typecheck:tests": "tsc -p tsconfig.ci.json --noEmit",
     "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts",
+    "seed:demo": "tsx src/db/seedDemo.ts",
     "load-test": "tsx scripts/load-test/run.ts"
   },
   "dependencies": {

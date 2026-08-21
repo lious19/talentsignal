@@ -1,3 +1,4 @@
+import type { Pool } from "pg";
 import { createPool } from "./pool";
 import { runMigrations } from "./migrate";
 
@@ -137,10 +138,15 @@ const SEED_CLIENTS: SeedClient[] = [
   simpleClosedClient("26", "2026-04-02", "2026-04-20"),
 ];
 
-async function main(): Promise<void> {
-  const pool = createPool();
-  await runMigrations(pool);
-
+/**
+ * S-19: extracted from this file's original main() so seedDemo.ts (S-19's
+ * combined demo seed) can call it directly against an already-open pool,
+ * instead of shelling out to this file as a separate process. Behavior is
+ * unchanged — same skip-existing idempotency, same queries, same order.
+ */
+export async function seedAnalyticsDemo(
+  pool: Pool,
+): Promise<{ inserted: number; alreadyPresent: number }> {
   // Skip-existing, not delete-and-reinsert: decision 013 makes
   // sales_pipeline_audit genuinely append-only — even this script's own
   // DELETE was rejected by that trigger the first time this ran against a
@@ -187,16 +193,28 @@ async function main(): Promise<void> {
     );
   }
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `seeded ${clientsToSeed.length} new client(s), ${existingNames.size} already present, ` +
-      `${SEED_CLIENTS.length} total prefixed "${SEED_PREFIX}"`,
-  );
-  await pool.end();
+  return { inserted: clientsToSeed.length, alreadyPresent: existingNames.size };
 }
 
-main().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error("seedAnalyticsDemo failed:", err);
-  process.exit(1);
-});
+// CLI entry point only — `npm run seed:analytics-demo` still behaves exactly
+// as before. Guarded so importing seedAnalyticsDemo() (e.g. from
+// seedDemo.ts) never triggers this file's own pool creation/migration/exit
+// as an import side effect; CommonJS's require.main is the standard way to
+// tell "run directly" from "imported by something else" apart.
+if (require.main === module) {
+  (async () => {
+    const pool = createPool();
+    await runMigrations(pool);
+    const { inserted, alreadyPresent } = await seedAnalyticsDemo(pool);
+    // eslint-disable-next-line no-console
+    console.log(
+      `seeded ${inserted} new client(s), ${alreadyPresent} already present, ` +
+        `${SEED_CLIENTS.length} total prefixed "${SEED_PREFIX}"`,
+    );
+    await pool.end();
+  })().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("seedAnalyticsDemo failed:", err);
+    process.exit(1);
+  });
+}

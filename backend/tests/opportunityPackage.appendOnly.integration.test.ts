@@ -42,8 +42,11 @@ describeIfDb(
 
     it("rejects UPDATE and DELETE against a release-audit row, leaving it byte-for-byte unchanged", async () => {
       const { rows: opportunityRows } = await scopedPool.query(
-        `INSERT INTO opportunities (source, external_signal_id, company, confidence_score, reasons, weights_version, factor_breakdown)
-         VALUES ('test', 'ext-1', 'Acme Corp', 0.5, ARRAY['open 5 days'], 'v1', '[]'::jsonb)
+        `INSERT INTO opportunities
+           (source, external_signal_id, company, title, confidence_score, reasons, weights_version, factor_breakdown,
+            hard_to_fill_score, hard_to_fill_reasons, hard_to_fill_factors, hard_to_fill_version)
+         VALUES ('test', 'ext-1', 'Acme Corp', 'Engineer', 0.5, ARRAY['open 5 days'], 'v1', '[]'::jsonb,
+                 0, ARRAY[]::text[], '[]'::jsonb, 'v1')
          RETURNING id`,
       );
       const { rows: jobRows } = await scopedPool.query(

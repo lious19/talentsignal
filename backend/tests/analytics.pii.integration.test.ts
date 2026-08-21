@@ -76,8 +76,10 @@ describeIfDb(
 
       await scopedPool.query(
         `INSERT INTO opportunities
-           (source, external_signal_id, company, confidence_score, reasons, weights_version, factor_breakdown)
-         VALUES ('mock-job-board', 'ext-1', 'Acme Corp', 0.8, ARRAY['open 5 days'], 'v1', '[]'::jsonb)`,
+           (source, external_signal_id, company, title, confidence_score, reasons, weights_version, factor_breakdown,
+            hard_to_fill_score, hard_to_fill_reasons, hard_to_fill_factors, hard_to_fill_version)
+         VALUES ('mock-job-board', 'ext-1', 'Acme Corp', 'Engineer', 0.8, ARRAY['open 5 days'], 'v1', '[]'::jsonb,
+                 0, ARRAY[]::text[], '[]'::jsonb, 'v1')`,
       );
     });
 

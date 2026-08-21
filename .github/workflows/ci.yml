@@ -1,0 +1,99 @@
+name: CI
+
+# S-19: required green gate on every push/PR. Two independent jobs — backend
+# and frontend are separate npm projects with no shared root package.json or
+# tooling, so there's nothing a single combined job would buy.
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # Matches docker-compose.yml's own image, so CI's Postgres is the same
+    # version the demo and local dev run against.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: talentsignal
+          POSTGRES_PASSWORD: talentsignal
+          POSTGRES_DB: talentsignal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U talentsignal -d talentsignal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Disposable, CI-only credentials torn down with the job — not a
+    # repository secret. JWT_SECRET is generated fresh below for the same
+    # reason: nothing in this job ever needs to match a real deployment's
+    # secret (vitest.config.ts already injects its own fixed test-only value
+    # for the test run itself; this step exists so `npm run build`/
+    # `typecheck:tests` also have a valid-shaped value available, matching
+    # the story's literal "no secrets in the repo" instruction).
+    env:
+      DATABASE_URL: postgres://talentsignal:talentsignal@localhost:5432/talentsignal
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+
+      - name: Generate a disposable JWT_SECRET for this job only
+        run: echo "JWT_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      # Unit + integration + E2E in one invocation: every *.integration.test.ts
+      # / *.e2e.test.ts / migrate.test.ts file already self-skips via
+      # `DATABASE_URL ? describe : describe.skip` — setting DATABASE_URL here
+      # is what turns them from skipped to enforced, with zero code changes.
+      # *.latency.integration.test.ts stays diagnostic-only: it additionally
+      # requires RUN_TIMING_TESTS=1, which this workflow deliberately never
+      # sets (06_decisions/029 — deferred, not enforced, to avoid perf-guard
+      # flakiness on a shared runner this close to the deadline).
+      - run: npm test
+
+      # The real production build (backend/tsconfig.json), unaffected by the
+      # tests/ typecheck below.
+      - run: npm run build
+
+      # "Lint" = tsc --noEmit over src/ + tests/ (backend/tsconfig.ci.json).
+      # No ESLint config exists anywhere in the repo yet (06_decisions/029);
+      # this closes the real gap that tsconfig.json excludes tests/ from
+      # npm run build entirely.
+      - run: npm run typecheck:tests
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      # tsc --noEmit && vite build — already covers frontend/src/, no
+      # separate typecheck step needed.
+      - run: npm run build
