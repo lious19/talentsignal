@@ -23,6 +23,11 @@ yarn-debug.log*
 yarn-error.log*
 logs/
 
+# S-18 load-test harness leftovers from a bad/interrupted run — the plain
+# *.log rule above already covers run-*.log itself, not these compound
+# extensions (see 06_decisions/030)
+backend/scripts/load-test/results/*.log.*
+
 # Test / coverage
 coverage/
 .nyc_output/

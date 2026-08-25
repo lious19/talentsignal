@@ -71,3 +71,4 @@ The observation that should make us revisit it.
 | 028 | Hard-to-fill targeting seed-visibility fix (`includeSeedData` opt-in + seed-title keyword variation) — proposal drafted, awaiting Ali | S-18 | soft |
 | 029 | E2E-critical journeys (the two named in S-19's Gherkin), lint = tsc-as-lint, perf threshold deferred again, seed dataset shape — proposed, awaiting Ali | S-19 | soft |
 | 029 | Setting `DATABASE_URL` in CI promotes every self-skipping integration/append-only/migrate test into a required blocking gate for the first time — a real behavior change, not just new files, worth Ali's awareness before S-20 | S-19 | soft |
+| 030 | Repo name (`talentsignal`), visibility (private — recommended), and full-history push strategy, plus pre-push audit findings — proposed, awaiting Ali/Megan's actual push | REPO | soft |
