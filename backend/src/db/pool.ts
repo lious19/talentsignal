@@ -19,7 +19,10 @@ export function createPool(): Pool {
     // network-separated Postgres can turn on TLS via one env var, without
     // a code change — it is not itself proof that transit encryption is
     // running anywhere right now.
-    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : undefined,
+    ssl:
+      process.env.DATABASE_SSL === "true"
+        ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false" }
+        : undefined,
   });
 }
 
