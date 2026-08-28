@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import type { Pool } from "pg";
@@ -32,13 +33,22 @@ export function createApp(
 ): Express {
   const app = express();
 
-  app.use(cors({ origin: process.env.CORS_ORIGIN ?? "*" }));
+  // Render sits exactly one proxy hop in front of this container (decision
+  // 036). Trusting that one hop, not an unbounded chain, means req.ip and
+  // req.secure reflect the real client without letting a client spoof its
+  // own IP via a forged X-Forwarded-For header.
+  app.set("trust proxy", 1);
+
+  const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+  const corsOrigins =
+    corsOrigin === "*" ? "*" : corsOrigin.split(",").map((o) => o.trim()).filter(Boolean);
+  app.use(cors({ origin: corsOrigins }));
   app.use(requestLogger);
   app.use(express.json({ limit: "10kb" }));
 
-  // Every route lives under /api. S-20 serves the built frontend with no
-  // Vite dev server in front of it, so nothing can depend on the dev
-  // proxy's path rewrite to make these paths line up.
+  // Every route lives under /api. The frontend is a separate Render Static
+  // Site (decision 031), not served by this process, so CORS_ORIGIN must
+  // list every real origin that calls this API.
   app.use("/api", healthRouter(pool));
   app.use("/api", authRouter(pool));
   app.use("/api", adminRouter(pool));
@@ -58,6 +68,12 @@ export function createApp(
   app.use("/api", privacyRouter(pool));
   app.use("/api", crmWriteRouter(pool));
   app.use("/api", revenueAnomaliesRouter(pool));
+
+  // The built frontend (decision 037: one Render service, not a separate
+  // Static Site) lives alongside dist/ inside the container image — see the
+  // top-level Dockerfile's frontend-build stage. Mounted after every /api
+  // route so nothing here can shadow an API path.
+  app.use(express.static(path.join(__dirname, "..", "frontend-dist")));
 
   return app;
 }
