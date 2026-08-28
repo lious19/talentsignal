@@ -49,7 +49,7 @@ export function OpportunitiesList() {
       return;
     }
 
-    fetch("/api/hidden-demand/opportunities", {
+    fetch("/api/hidden-demand/opportunities?includeSeedData=true", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {

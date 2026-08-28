@@ -91,7 +91,7 @@ export function PackageReviewScreen() {
     // Picker options only — a failure here just leaves the picker empty,
     // same "there's nothing else useful to do with this" reasoning
     // MatchScreen.tsx uses for its own job-opening picker.
-    fetch("/api/hidden-demand/opportunities", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/hidden-demand/opportunities?includeSeedData=true", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => (res.ok ? (res.json() as Promise<{ opportunities: OpportunityOption[] }>) : null))
       .then((body) => {
         if (body) setOpportunities(body.opportunities);

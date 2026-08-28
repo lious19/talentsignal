@@ -40,7 +40,7 @@ export function HardToFillTargeting() {
       return;
     }
 
-    fetch("/api/hard-to-fill/targeting", {
+    fetch("/api/hard-to-fill/targeting?includeSeedData=true", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {

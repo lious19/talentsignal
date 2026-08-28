@@ -51,7 +51,7 @@ export function RelationshipsPanel() {
     const token = getStoredToken();
     if (!token) return;
 
-    fetch("/api/hidden-demand/opportunities", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/hidden-demand/opportunities?includeSeedData=true", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => (res.ok ? (res.json() as Promise<{ opportunities: OpportunityOption[] }>) : null))
       .then((body) => {
         if (body) setOpportunities(body.opportunities);
