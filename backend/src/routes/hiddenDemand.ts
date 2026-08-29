@@ -102,26 +102,36 @@ function byRankThenId(
 // reason ("reposted role", "no salary range", ...).
 const REASONS_DELIMITER = "\u001F";
 
+// 06_decisions/042: a live run of 1,036 real signals hit Postgres's 5s
+// statement_timeout on the single unnest() INSERT below -- a scale the 9-row
+// seed and small test fixtures never exercised. Chunking bounds each
+// statement's size instead of raising the timeout (which would hide the same
+// ceiling from every other query on this pool, not just this one). Tunable:
+// lower this if a single chunk is ever observed to approach 5s on its own
+// (see decision doc for the reasoning).
+export const UPSERT_CHUNK_SIZE = 200;
+
 /**
- * Scores (confidence + hard-to-fill) and upserts a whole batch in ONE
- * statement via unnest(), not one `pool.query` per signal. That distinction is
- * the entire latency story here: Postgres also caps a query at 65535 bind
- * parameters, and a dynamically built multi-VALUES statement (11 columns *
- * 10,000 rows = 110,000 params) sits over that ceiling at the exact scale this
- * story targets. unnest() takes one array parameter per column — 11 array
- * params (plus one scalar delimiter) total, regardless of whether the batch
- * has 1 row or 10,000 — and stays a single atomic statement, so a batch either
- * fully upserts or fully fails, never half-applies.
+ * Scores (confidence + hard-to-fill) and upserts ONE CHUNK in ONE statement
+ * via unnest(), not one `pool.query` per signal. That distinction is the
+ * latency story here: Postgres also caps a query at 65535 bind parameters,
+ * and a dynamically built multi-VALUES statement (11 columns * 10,000 rows =
+ * 110,000 params) sits over that ceiling at the scale this story targets.
+ * unnest() takes one array parameter per column -- 11 array params (plus one
+ * scalar delimiter) total, regardless of chunk size -- and stays a single
+ * atomic statement, so one chunk either fully upserts or fully fails, never
+ * half-applies. `upsertBatch` below splits the full signal list into chunks
+ * of UPSERT_CHUNK_SIZE so each individual statement stays well under the 5s
+ * statement_timeout (06_decisions/042) -- the whole batch no longer commits
+ * as one transaction, but that tradeoff is what makes 1,000+ real signals
+ * ingestible at all.
  *
  * factor_breakdown needs no delimiter trick the way reasons does: each row's
  * breakdown is ONE jsonb value (an array of 4 factor objects), not several
  * sub-elements that unnest() would otherwise flatten across rows — so a
  * plain jsonb[] array, one parsed JSON document per row, is unambiguous.
  */
-// Exported for S-19's seedDemo.ts: reuses the real scorer + upsert path to
-// generate a hard-to-fill opportunity for the demo seed, instead of
-// hand-rolling a second, guessable score. See 06_decisions/029.
-export async function upsertBatch(
+async function upsertChunk(
   pool: Pool,
   signals: MarketSignal[],
 ): Promise<ReturnType<typeof toOpportunityResponse>[]> {
@@ -212,7 +222,46 @@ export async function upsertBatch(
     ],
   );
 
-  return (rows as OpportunityRow[]).map(toOpportunityResponse).sort(byRankThenId);
+  return (rows as OpportunityRow[]).map(toOpportunityResponse);
+}
+
+/**
+ * Splits `signals` into chunks of UPSERT_CHUNK_SIZE and calls upsertChunk()
+ * on each, sequentially (not Promise.all) so a large batch never opens many
+ * concurrent connections against the pool at once -- a single ingestion run
+ * has no latency budget that requires parallelism here, and the pool is
+ * shared with request-serving traffic.
+ *
+ * Chunk-level failure isolation mirrors 06_decisions/040's board-level
+ * isolation: one chunk's error is logged and classified, and the remaining
+ * chunks still run -- a run that upserts 800 of 1,000 signals is strictly
+ * better than one that upserts zero because row 850 had a bad value.
+ */
+// Exported for S-19's seedDemo.ts: reuses the real scorer + upsert path to
+// generate a hard-to-fill opportunity for the demo seed, instead of
+// hand-rolling a second, guessable score. See 06_decisions/029.
+export async function upsertBatch(
+  pool: Pool,
+  signals: MarketSignal[],
+): Promise<ReturnType<typeof toOpportunityResponse>[]> {
+  if (signals.length === 0) return [];
+
+  const results: ReturnType<typeof toOpportunityResponse>[] = [];
+
+  for (let i = 0; i < signals.length; i += UPSERT_CHUNK_SIZE) {
+    const chunk = signals.slice(i, i + UPSERT_CHUNK_SIZE);
+    try {
+      const chunkRows = await upsertChunk(pool, chunk);
+      results.push(...chunkRows);
+    } catch (err) {
+      logger.error(
+        { chunkStart: i, chunkSize: chunk.length, err },
+        "upsertBatch chunk failed -- continuing with remaining chunks",
+      );
+    }
+  }
+
+  return results.sort(byRankThenId);
 }
 
 export function hiddenDemandRouter(

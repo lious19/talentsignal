@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/app";
 import { createFakeOpportunitiesPool } from "./helpers/fakeOpportunitiesPool";
 import { salesAuthHeader } from "./helpers/authHeader";
+import { upsertBatch, UPSERT_CHUNK_SIZE } from "../src/routes/hiddenDemand";
 import type { MarketSignal, MarketSignalProvider } from "../src/adapters/marketSignalProvider";
 
 function fixedProvider(signals: MarketSignal[]): MarketSignalProvider {
@@ -68,7 +69,7 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
     );
   });
 
-  it("writes a batch of many signals in one query, not one query per signal", async () => {
+  it("writes a batch of many signals in one query per chunk, not one query per signal", async () => {
     const { pool } = createFakeOpportunitiesPool();
     const signals: MarketSignal[] = Array.from({ length: 500 }, (_, i) => ({
       source: "mock-job-board",
@@ -87,10 +88,33 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.opportunities).toHaveLength(500);
-    // requireAuth never touches the DB, so this is the ONLY query the
-    // request should issue — a regression back to a per-row loop would make
-    // this 500, not 1.
-    expect(pool.query).toHaveBeenCalledTimes(1);
+    // requireAuth never touches the DB. 06_decisions/042: 500 signals chunk
+    // into 200 + 200 + 100 (UPSERT_CHUNK_SIZE), one query per chunk — a
+    // regression back to a per-row loop would make this 500, not 3.
+    expect(pool.query).toHaveBeenCalledTimes(3);
+  });
+
+  it("06_decisions/042: 500 signals issue exactly 3 chunked SQL statements (200 + 200 + 100), not 1", async () => {
+    const { pool } = createFakeOpportunitiesPool();
+    expect(UPSERT_CHUNK_SIZE).toBe(200);
+    const signals: MarketSignal[] = Array.from({ length: 500 }, (_, i) => ({
+      source: "mock-job-board",
+      externalId: `chunk-${i}`,
+      company: `Company ${i}`,
+      title: "Role",
+      daysOpen: i % 40,
+      isRepost: i % 3 === 0,
+      hasSalaryRange: i % 2 === 0,
+    }));
+
+    const opportunities = await upsertBatch(pool, signals);
+
+    expect(opportunities).toHaveLength(500);
+    expect(pool.query).toHaveBeenCalledTimes(3);
+    const callSizes = (pool.query as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (call) => (call[1] as unknown[][])[0].length,
+    );
+    expect(callSizes).toEqual([200, 200, 100]);
   });
 
   it("idempotency: re-analyzing the same batch updates rows, not duplicates them", async () => {

@@ -25,12 +25,14 @@ export interface FakeOpportunityRow {
  * In-memory stand-in for the opportunities table, faithful to the two things
  * that matter here: ON CONFLICT (source, external_signal_id) DO UPDATE
  * behaves as an upsert, never a second row (mirroring the real UNIQUE
- * constraint in 003_opportunities.sql), and the batch upsert in
- * hiddenDemand.ts's upsertBatch() is genuinely one query call regardless of
- * how many rows it carries — this fake mirrors that shape (seven parallel
- * array params, one query() call) rather than looping per row itself, so a
- * test asserting query.mock.calls.length actually proves something about the
- * real query, not an artifact of how the fake happens to be built.
+ * constraint in 003_opportunities.sql), and each upsertChunk() call inside
+ * hiddenDemand.ts's upsertBatch() is genuinely one query call per chunk
+ * (parallel array params via unnest()), not one query per row — this fake
+ * mirrors that per-chunk shape rather than looping per row itself, so a test
+ * asserting query.mock.calls.length actually proves something about the real
+ * query, not an artifact of how the fake happens to be built. Since
+ * 06_decisions/042, a batch above UPSERT_CHUNK_SIZE issues one query() call
+ * per chunk, not one call for the whole batch.
  */
 export function createFakeOpportunitiesPool() {
   const rows: FakeOpportunityRow[] = [];
