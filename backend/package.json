@@ -11,7 +11,8 @@
     "typecheck:tests": "tsc -p tsconfig.ci.json --noEmit",
     "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts",
     "seed:demo": "tsx src/db/seedDemo.ts",
-    "load-test": "tsx scripts/load-test/run.ts"
+    "load-test": "tsx scripts/load-test/run.ts",
+    "ingest:once": "tsx scripts/ingest-once.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

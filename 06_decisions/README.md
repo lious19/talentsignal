@@ -72,3 +72,5 @@ The observation that should make us revisit it.
 | 029 | E2E-critical journeys (the two named in S-19's Gherkin), lint = tsc-as-lint, perf threshold deferred again, seed dataset shape — proposed, awaiting Ali | S-19 | soft |
 | 029 | Setting `DATABASE_URL` in CI promotes every self-skipping integration/append-only/migrate test into a required blocking gate for the first time — a real behavior change, not just new files, worth Ali's awareness before S-20 | S-19 | soft |
 | 030 | Repo name (`talentsignal`), visibility (private — recommended), and full-history push strategy, plus pre-push audit findings — proposed, awaiting Ali/Megan's actual push | REPO | soft |
+| 040 | Greenhouse/Lever providers implement the existing `MarketSignalProvider` directly (no interface change); `isRepost` defers cleanly to S-22's longitudinal diffing, `daysOpen` computed for real from each provider's own timestamp field | S-21 | soft |
+| 041 | `raw_requisitions` is a new, append-only table (`UNIQUE (source, external_id, fetched_at)`, one row per fetch — history for S-22, not overwritten); parsed rows reuse the existing `opportunities` table, no new parsed-data table | S-21 | soft |
