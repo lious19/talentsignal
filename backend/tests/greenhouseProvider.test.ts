@@ -3,11 +3,22 @@ import type { Pool } from "pg";
 import { GreenhouseProvider } from "../src/adapters/greenhouseProvider";
 import fixture from "./fixtures/greenhouse/gitlab.json";
 
+// S-22: GreenhouseProvider now calls computeDiff() after persisting each raw
+// row, which needs the INSERT's RETURNING id/fetched_at to have something to
+// read. Every OTHER query (computeDiff's history/gap-window reads) still
+// returns {rows: []} -- "no prior history" is the correct, first-sighting
+// behavior these existing unit tests already assert (isRepost: false).
 function fakePool() {
   const calls: unknown[][] = [];
+  let rawRowCounter = 0;
   const pool = {
     query: vi.fn(async (...args: unknown[]) => {
       calls.push(args);
+      const sql = args[0] as string;
+      if (sql.includes("INSERT INTO raw_requisitions")) {
+        rawRowCounter += 1;
+        return { rows: [{ id: `fake-raw-${rawRowCounter}`, fetched_at: new Date().toISOString() }] };
+      }
       return { rows: [] };
     }),
   } as unknown as Pool;

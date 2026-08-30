@@ -46,7 +46,11 @@ export async function ingestRequisitions(
 
   async function runProvider(name: "greenhouse" | "lever", provider: MarketSignalProvider): Promise<ProviderRunResult> {
     try {
-      const signals = await provider.fetchSignals({ timeoutMs: options.timeoutMs });
+      // S-22: the run's correlationId doubles as computeDiffs.ts's run_id
+      // (06_decisions/043) -- one id already threads every log line for
+      // this run (CLAUDE.md rule 8); reusing it to tag raw_requisitions rows
+      // means no second id scheme is needed.
+      const signals = await provider.fetchSignals({ timeoutMs: options.timeoutMs, runId: correlationId });
       allSignals.push(...signals);
       logger.info({ correlationId, provider: name, count: signals.length }, "ingestion provider succeeded");
       return { ok: true, signalCount: signals.length };

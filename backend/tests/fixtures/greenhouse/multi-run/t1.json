@@ -1,0 +1,31 @@
+{
+  "jobs": [
+    {
+      "id": 9000001,
+      "title": "Data Analyst",
+      "company_name": "GitLab",
+      "first_published": "2026-06-01T00:00:00-04:00",
+      "updated_at": "2026-06-01T00:00:00-04:00",
+      "requisition_id": "9001",
+      "content": "&lt;div&gt;Analyze data across the org.&lt;/div&gt;"
+    },
+    {
+      "id": 9000002,
+      "title": "Support Engineer",
+      "company_name": "GitLab",
+      "first_published": "2026-06-01T00:00:00-04:00",
+      "updated_at": "2026-06-01T00:00:00-04:00",
+      "requisition_id": "9002",
+      "content": "&lt;div&gt;Help customers with GitLab.&lt;/div&gt;"
+    },
+    {
+      "id": 9000003,
+      "title": "AI Architect",
+      "company_name": "GitLab",
+      "first_published": "2026-06-01T00:00:00-04:00",
+      "updated_at": "2026-06-01T00:00:00-04:00",
+      "requisition_id": "9003",
+      "content": "&lt;div&gt;Design AI systems.&lt;/div&gt;"
+    }
+  ]
+}

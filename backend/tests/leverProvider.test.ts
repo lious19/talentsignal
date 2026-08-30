@@ -3,11 +3,19 @@ import type { Pool } from "pg";
 import { LeverProvider } from "../src/adapters/leverProvider";
 import fixture from "./fixtures/lever/gopuff.json";
 
+// S-22: LeverProvider now calls computeDiff() after persisting each raw row
+// -- see the identical note in greenhouseProvider.test.ts.
 function fakePool() {
   const calls: unknown[][] = [];
+  let rawRowCounter = 0;
   const pool = {
     query: vi.fn(async (...args: unknown[]) => {
       calls.push(args);
+      const sql = args[0] as string;
+      if (sql.includes("INSERT INTO raw_requisitions")) {
+        rawRowCounter += 1;
+        return { rows: [{ id: `fake-raw-${rawRowCounter}`, fetched_at: new Date().toISOString() }] };
+      }
       return { rows: [] };
     }),
   } as unknown as Pool;

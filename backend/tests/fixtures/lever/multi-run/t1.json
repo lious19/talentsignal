@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lvr-a1",
+    "text": "Data Engineer",
+    "createdAt": 1780000000000,
+    "description": "<div>Build data pipelines.</div>"
+  },
+  {
+    "id": "lvr-b1",
+    "text": "Recruiter",
+    "createdAt": 1780000000000,
+    "description": "<div>Source candidates.</div>"
+  },
+  {
+    "id": "lvr-c1",
+    "text": "Cloud Architect",
+    "createdAt": 1780000000000,
+    "description": "<div>Design cloud infra.</div>"
+  }
+]

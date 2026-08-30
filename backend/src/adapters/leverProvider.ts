@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import type { FetchSignalsOptions, MarketSignal, MarketSignalProvider } from "./marketSignalProvider";
 import { fetchWithTimeout } from "../ingestion/fetchWithTimeout";
 import { persistRawRequisition } from "../ingestion/rawRequisitions";
+import { computeDiff } from "../ingestion/computeDiffs";
 import { logger } from "../logger";
 
 const SOURCE = "lever";
@@ -11,19 +13,25 @@ const SOURCE = "lever";
 // company name -- the board handle (config, not the response) is the only
 // source for it. salaryRange is optional and jurisdiction-dependent; none
 // of the real postings fetched during research had it, but the field is
-// checked defensively rather than assumed absent everywhere.
+// checked defensively rather than assumed absent everywhere. `description`
+// (S-22): Lever's default response already includes raw HTML description
+// text -- confirmed in the gopuff fixture -- unlike Greenhouse, no query
+// param change was needed for this source (06_decisions/044). Lever has no
+// requisition_id-equivalent field, so the requisition_id-based repost
+// signal (06_decisions/043) is Greenhouse-only.
 interface LeverPosting {
   id: string;
   text: string;
   createdAt: number;
   salaryRange?: unknown;
+  description?: string;
 }
 
-function daysSince(epochMs: number): number {
+function parseDate(epochMs: number, fieldName: string): Date {
   if (typeof epochMs !== "number" || Number.isNaN(epochMs)) {
-    throw new Error(`unparseable createdAt timestamp: ${JSON.stringify(epochMs)}`);
+    throw new Error(`unparseable ${fieldName} timestamp: ${JSON.stringify(epochMs)}`);
   }
-  return Math.max(0, Math.floor((Date.now() - epochMs) / 86_400_000));
+  return new Date(epochMs);
 }
 
 function displayCompanyName(handle: string): string {
@@ -33,16 +41,46 @@ function displayCompanyName(handle: string): string {
     .join(" ");
 }
 
-function toMarketSignal(handle: string, posting: LeverPosting): MarketSignal {
+// Lets computeDiffs.ts pull title/description back out of a HISTORICAL
+// raw_response row without knowing Lever's shape itself (06_decisions/043).
+function extractText(rawResponse: unknown): { title: string; description: string } {
+  const posting = rawResponse as Partial<LeverPosting> | null;
+  return { title: posting?.text ?? "", description: posting?.description ?? "" };
+}
+
+async function toMarketSignal(
+  pool: Pool,
+  handle: string,
+  posting: LeverPosting,
+  runId: string,
+  rawRowId: string,
+  fetchedAt: Date,
+): Promise<MarketSignal> {
+  const openedAt = parseDate(posting.createdAt, "createdAt");
+
+  // S-22: same wiring as GreenhouseProvider -- see 06_decisions/043/044/045.
+  const diff = await computeDiff(pool, {
+    source: SOURCE,
+    externalId: posting.id,
+    runId,
+    rawRowId,
+    fetchedAt,
+    title: posting.text,
+    description: posting.description ?? "",
+    openedAt,
+    extractText,
+  });
+
   return {
     source: SOURCE,
     externalId: posting.id,
     company: displayCompanyName(handle),
     title: posting.text,
-    daysOpen: daysSince(posting.createdAt),
-    // Deferred to S-22, same as GreenhouseProvider -- see 06_decisions/040.
-    isRepost: false,
+    daysOpen: diff.daysOpen,
+    isRepost: diff.repostCount > 0,
     hasSalaryRange: posting.salaryRange != null,
+    repostCount: diff.repostCount,
+    descriptionChurn: diff.descriptionChurn,
   };
 }
 
@@ -60,6 +98,7 @@ export class LeverProvider implements MarketSignalProvider {
 
   async fetchSignals(options: FetchSignalsOptions): Promise<MarketSignal[]> {
     const signals: MarketSignal[] = [];
+    const runId = options.runId ?? randomUUID();
 
     for (const handle of this.companyHandles) {
       let postings: LeverPosting[];
@@ -75,13 +114,13 @@ export class LeverProvider implements MarketSignalProvider {
 
       for (const posting of postings) {
         // Raw persisted before parsing -- acceptance criterion 2. Wrapping
-        // only the parse step below means one bad posting's raw response
-        // still survives and doesn't stop the next posting in the same
-        // company from being fetched-and-persisted (see 06_decisions/040's
-        // trust guarantee).
-        await persistRawRequisition(this.pool, SOURCE, posting.id, posting, 200);
+        // only the parse step below (now including the S-22 diff
+        // computation) means one bad posting's raw response still survives
+        // and doesn't stop the next posting in the same company from being
+        // fetched-and-persisted (see 06_decisions/040's trust guarantee).
+        const rawRow = await persistRawRequisition(this.pool, SOURCE, posting.id, posting, 200, runId);
         try {
-          signals.push(toMarketSignal(handle, posting));
+          signals.push(await toMarketSignal(this.pool, handle, posting, runId, rawRow.id, rawRow.fetchedAt));
         } catch (err) {
           logger.error(
             { source: SOURCE, board: handle, externalId: posting.id, err },

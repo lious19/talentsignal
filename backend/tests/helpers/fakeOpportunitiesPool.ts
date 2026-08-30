@@ -17,6 +17,12 @@ export interface FakeOpportunityRow {
   hard_to_fill_reasons: string[];
   hard_to_fill_factors: unknown[];
   hard_to_fill_version: string;
+  // S-22 (migration 016): mirrors the real row shape the same way the
+  // hard-to-fill columns above do.
+  repost_count: number;
+  days_open: number;
+  description_churn: number;
+  diff_computed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,9 +49,11 @@ export function createFakeOpportunitiesPool() {
       const [
         sources, externalIds, companies, scores, reasonsJoined, weightsVersions, breakdownsJson,
         htfScores, htfReasonsJoined, htfBreakdownsJson, htfVersions, titles, delimiter,
+        repostCounts, daysOpens, descriptionChurns,
       ] = params as [
         string[], string[], string[], number[], string[], string[], string[],
         number[], string[], string[], string[], string[], string,
+        number[], number[], number[],
       ];
       const now = new Date().toISOString();
       const returned: FakeOpportunityRow[] = [];
@@ -67,6 +75,9 @@ export function createFakeOpportunitiesPool() {
         const hardToFillReasons = htfReasonsJoined[i].split(delimiter);
         const hardToFillFactors = JSON.parse(htfBreakdownsJson[i]);
         const hardToFillVersion = htfVersions[i];
+        const repostCount = repostCounts[i];
+        const daysOpen = daysOpens[i];
+        const descriptionChurn = descriptionChurns[i];
 
         const existing = rows.find(
           (r) => r.source === source && r.external_signal_id === externalSignalId,
@@ -81,6 +92,10 @@ export function createFakeOpportunitiesPool() {
           existing.hard_to_fill_reasons = hardToFillReasons;
           existing.hard_to_fill_factors = hardToFillFactors;
           existing.hard_to_fill_version = hardToFillVersion;
+          existing.repost_count = repostCount;
+          existing.days_open = daysOpen;
+          existing.description_churn = descriptionChurn;
+          existing.diff_computed_at = now;
           existing.updated_at = now;
           returned.push(existing);
           continue;
@@ -99,6 +114,10 @@ export function createFakeOpportunitiesPool() {
           hard_to_fill_reasons: hardToFillReasons,
           hard_to_fill_factors: hardToFillFactors,
           hard_to_fill_version: hardToFillVersion,
+          repost_count: repostCount,
+          days_open: daysOpen,
+          description_churn: descriptionChurn,
+          diff_computed_at: now,
           created_at: now,
           updated_at: now,
         };

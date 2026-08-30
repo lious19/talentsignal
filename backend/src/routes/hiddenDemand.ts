@@ -41,6 +41,12 @@ export interface OpportunityRow {
   hard_to_fill_reasons: string[];
   hard_to_fill_factors: HardToFillFactor[];
   hard_to_fill_version: string;
+  // S-22 (migration 016): measured from raw_requisitions history, not
+  // seeded -- 06_decisions/043 (repost), 044 (churn), 045 (this schema).
+  repost_count: number;
+  days_open: number;
+  description_churn: number;
+  diff_computed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +78,14 @@ export function toOpportunityResponse(row: OpportunityRow) {
     hardToFillReasons: row.hard_to_fill_reasons,
     hardToFillFactors: row.hard_to_fill_factors,
     hardToFillVersion: row.hard_to_fill_version,
+    // S-22: repostCount/descriptionChurn are the measured facts; isRepost
+    // above (already read from the confidence/hard-to-fill factor
+    // breakdowns) is just repostCount > 0 -- diffComputedAt null means this
+    // row predates S-22 or hasn't been diffed yet (see migration 016).
+    repostCount: row.repost_count,
+    daysOpen: row.days_open,
+    descriptionChurn: row.description_churn,
+    diffComputedAt: row.diff_computed_at,
     source: row.source,
     externalSignalId: row.external_signal_id,
     createdAt: row.created_at,
@@ -152,6 +166,15 @@ async function upsertChunk(
   const htfReasonsJoined: string[] = [];
   const htfBreakdownsJson: string[] = [];
   const htfVersions: string[] = [];
+  // S-22: carried straight through from MarketSignal (computed by
+  // computeDiffs.ts inside each provider) to persistence -- no scoring
+  // change here, scoreSignal()/hardToFillScore() already consumed
+  // daysOpen/isRepost before this story, just with worse inputs.
+  // MarketSignal.repostCount/descriptionChurn are optional (so every
+  // existing mock/seed/test literal keeps compiling); undefined -> 0.
+  const repostCounts: number[] = [];
+  const daysOpens: number[] = [];
+  const descriptionChurns: number[] = [];
 
   for (const signal of signals) {
     const { score, reasons, factors, weightsVersion } = scoreSignal(signal);
@@ -170,12 +193,16 @@ async function upsertChunk(
     htfReasonsJoined.push(htf.reasons.join(REASONS_DELIMITER));
     htfBreakdownsJson.push(JSON.stringify(htf.factors));
     htfVersions.push(htf.version);
+    repostCounts.push(signal.repostCount ?? 0);
+    daysOpens.push(signal.daysOpen);
+    descriptionChurns.push(signal.descriptionChurn ?? 0);
   }
 
   const { rows } = await pool.query(
     `INSERT INTO opportunities
        (source, external_signal_id, company, title, confidence_score, reasons, weights_version, factor_breakdown,
-        hard_to_fill_score, hard_to_fill_reasons, hard_to_fill_factors, hard_to_fill_version)
+        hard_to_fill_score, hard_to_fill_reasons, hard_to_fill_factors, hard_to_fill_version,
+        repost_count, days_open, description_churn, diff_computed_at)
      SELECT
        src.source,
        src.external_signal_id,
@@ -188,11 +215,17 @@ async function upsertChunk(
        src.hard_to_fill_score,
        string_to_array(src.htf_reasons_joined, $13),
        src.hard_to_fill_factors,
-       src.hard_to_fill_version
+       src.hard_to_fill_version,
+       src.repost_count,
+       src.days_open,
+       src.description_churn,
+       now()
      FROM unnest($1::text[], $2::text[], $3::text[], $4::numeric[], $5::text[], $6::text[], $7::jsonb[],
-                 $8::numeric[], $9::text[], $10::jsonb[], $11::text[], $12::text[])
+                 $8::numeric[], $9::text[], $10::jsonb[], $11::text[], $12::text[],
+                 $14::int[], $15::int[], $16::int[])
        AS src(source, external_signal_id, company, confidence_score, reasons_joined, weights_version, factor_breakdown,
-              hard_to_fill_score, htf_reasons_joined, hard_to_fill_factors, hard_to_fill_version, title)
+              hard_to_fill_score, htf_reasons_joined, hard_to_fill_factors, hard_to_fill_version, title,
+              repost_count, days_open, description_churn)
      ON CONFLICT (source, external_signal_id)
      DO UPDATE SET confidence_score = EXCLUDED.confidence_score,
                    title = EXCLUDED.title,
@@ -203,6 +236,10 @@ async function upsertChunk(
                    hard_to_fill_reasons = EXCLUDED.hard_to_fill_reasons,
                    hard_to_fill_factors = EXCLUDED.hard_to_fill_factors,
                    hard_to_fill_version = EXCLUDED.hard_to_fill_version,
+                   repost_count = EXCLUDED.repost_count,
+                   days_open = EXCLUDED.days_open,
+                   description_churn = EXCLUDED.description_churn,
+                   diff_computed_at = EXCLUDED.diff_computed_at,
                    updated_at = now()
      RETURNING *`,
     [
@@ -219,6 +256,9 @@ async function upsertChunk(
       htfVersions,
       titles,
       REASONS_DELIMITER,
+      repostCounts,
+      daysOpens,
+      descriptionChurns,
     ],
   );
 
@@ -277,7 +317,7 @@ export function hiddenDemandRouter(
     let signals;
     try {
       signals = await withTimeout(
-        provider.fetchSignals({ timeoutMs: providerTimeoutMs }),
+        provider.fetchSignals({ timeoutMs: providerTimeoutMs, runId: req.correlationId }),
         providerTimeoutMs,
       );
     } catch (err) {

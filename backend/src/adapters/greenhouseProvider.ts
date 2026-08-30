@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import type { FetchSignalsOptions, MarketSignal, MarketSignalProvider } from "./marketSignalProvider";
 import { fetchWithTimeout } from "../ingestion/fetchWithTimeout";
 import { persistRawRequisition } from "../ingestion/rawRequisitions";
+import { computeDiff } from "../ingestion/computeDiffs";
 import { logger } from "../logger";
 
 const SOURCE = "greenhouse";
@@ -10,39 +12,75 @@ const SOURCE = "greenhouse";
 // S-21's design research -- not guessed. Greenhouse's public jobs endpoint
 // does not expose compensation data on any job actually fetched, so
 // hasSalaryRange is always false for this source (see toMarketSignal below,
-// and 06_decisions/040).
+// and 06_decisions/040). `content` (S-22): only present because
+// fetchBoard() now requests `?content=true` -- verified live during this
+// story (06_decisions/044) that the default response omits it entirely.
 interface GreenhouseJob {
   id: number | string;
   title: string;
   company_name: string;
   first_published: string;
   updated_at: string;
+  requisition_id?: string;
+  content?: string;
 }
 
 interface GreenhouseBoardResponse {
   jobs: GreenhouseJob[];
 }
 
-function daysSince(isoDate: string): number {
+function parseDate(isoDate: string, fieldName: string): Date {
   const parsed = Date.parse(isoDate);
   if (Number.isNaN(parsed)) {
-    throw new Error(`unparseable first_published date: ${JSON.stringify(isoDate)}`);
+    throw new Error(`unparseable ${fieldName} date: ${JSON.stringify(isoDate)}`);
   }
-  return Math.max(0, Math.floor((Date.now() - parsed) / 86_400_000));
+  return new Date(parsed);
 }
 
-function toMarketSignal(job: GreenhouseJob): MarketSignal {
+// Lets computeDiffs.ts pull title/description back out of a HISTORICAL
+// raw_response row without knowing Greenhouse's shape itself (06_decisions/043).
+function extractText(rawResponse: unknown): { title: string; description: string } {
+  const job = rawResponse as Partial<GreenhouseJob> | null;
+  return { title: job?.title ?? "", description: job?.content ?? "" };
+}
+
+async function toMarketSignal(
+  pool: Pool,
+  job: GreenhouseJob,
+  runId: string,
+  rawRowId: string,
+  fetchedAt: Date,
+): Promise<MarketSignal> {
+  const openedAt = parseDate(job.first_published, "first_published");
+
+  // S-22: daysOpen/isRepost are now measured from raw_requisitions history,
+  // not seeded from a single fetch (06_decisions/043/044/045) -- computed
+  // BEFORE this MarketSignal is built, and BEFORE scoreSignal()/
+  // hardToFillScore() ever see it, so both scorers get real inputs with
+  // zero changes to either function.
+  const diff = await computeDiff(pool, {
+    source: SOURCE,
+    externalId: String(job.id),
+    runId,
+    rawRowId,
+    fetchedAt,
+    title: job.title,
+    description: job.content ?? "",
+    requisitionId: job.requisition_id,
+    openedAt,
+    extractText,
+  });
+
   return {
     source: SOURCE,
     externalId: String(job.id),
     company: job.company_name,
     title: job.title,
-    daysOpen: daysSince(job.first_published),
-    // Deferred to S-22 (longitudinal diffing) by design -- neither
-    // Greenhouse nor Lever expose an explicit repost flag on a single
-    // fetch. See 06_decisions/040.
-    isRepost: false,
+    daysOpen: diff.daysOpen,
+    isRepost: diff.repostCount > 0,
     hasSalaryRange: false,
+    repostCount: diff.repostCount,
+    descriptionChurn: diff.descriptionChurn,
   };
 }
 
@@ -65,6 +103,7 @@ export class GreenhouseProvider implements MarketSignalProvider {
 
   async fetchSignals(options: FetchSignalsOptions): Promise<MarketSignal[]> {
     const signals: MarketSignal[] = [];
+    const runId = options.runId ?? randomUUID();
 
     for (const token of this.boardTokens) {
       let jobs: GreenhouseJob[];
@@ -81,13 +120,13 @@ export class GreenhouseProvider implements MarketSignalProvider {
       for (const job of jobs) {
         // Raw persisted before parsing -- acceptance criterion 2. This
         // happens even if toMarketSignal() below throws for this specific
-        // job: the try/catch wraps parsing only, so one bad job's raw
-        // response survives, and it doesn't stop the next job in the same
-        // board from being fetched-and-persisted too (see 06_decisions/040's
-        // trust guarantee).
-        await persistRawRequisition(this.pool, SOURCE, String(job.id), job, 200);
+        // job: the try/catch wraps parsing (now including the S-22 diff
+        // computation) only, so one bad job's raw response survives, and it
+        // doesn't stop the next job in the same board from being
+        // fetched-and-persisted too (see 06_decisions/040's trust guarantee).
+        const rawRow = await persistRawRequisition(this.pool, SOURCE, String(job.id), job, 200, runId);
         try {
-          signals.push(toMarketSignal(job));
+          signals.push(await toMarketSignal(this.pool, job, runId, rawRow.id, rawRow.fetchedAt));
         } catch (err) {
           logger.error(
             { source: SOURCE, board: token, externalId: String(job.id), err },
@@ -101,8 +140,15 @@ export class GreenhouseProvider implements MarketSignalProvider {
   }
 
   private async fetchBoard(token: string, timeoutMs: number): Promise<GreenhouseJob[]> {
+    // S-22: `content=true` added (06_decisions/044) -- without it,
+    // Greenhouse's board list endpoint returns no description text at all,
+    // verified live against boards-api.greenhouse.io during this story,
+    // which would make description_churn silently title-only for this
+    // source. Confirmed the response otherwise adds only new fields
+    // (content, departments, offices, ai_disclaimer, ...) -- nothing this
+    // adapter already reads changed shape.
     const res = await fetchWithTimeout(
-      `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(token)}/jobs`,
+      `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(token)}/jobs?content=true`,
       timeoutMs,
     );
     if (!res.ok) {

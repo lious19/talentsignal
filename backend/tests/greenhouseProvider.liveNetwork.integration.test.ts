@@ -20,9 +20,18 @@ describeIfLive("GreenhouseProvider live network (integration, requires network +
     "fetches a real board and returns at least one parsed signal",
     async () => {
       const calls: unknown[][] = [];
+      // S-22: persistRawRequisition() now needs its INSERT's RETURNING
+      // id/fetched_at to compute a diff against -- see the identical note in
+      // greenhouseProvider.test.ts's fakePool().
+      let rawRowCounter = 0;
       const pool = {
         query: vi.fn(async (...args: unknown[]) => {
           calls.push(args);
+          const sql = args[0] as string;
+          if (sql.includes("INSERT INTO raw_requisitions")) {
+            rawRowCounter += 1;
+            return { rows: [{ id: `fake-raw-${rawRowCounter}`, fetched_at: new Date().toISOString() }] };
+          }
           return { rows: [] };
         }),
       } as unknown as Pool;
