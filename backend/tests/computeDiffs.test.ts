@@ -4,23 +4,29 @@ import { computeDiff, normalizeChurnText } from "../src/ingestion/computeDiffs";
 
 interface FakeState {
   // Prior raw_requisitions rows for THIS (source, external_id), oldest first.
-  priorRows: { fetched_at: string; raw_response: unknown }[];
-  // run_ids that "polled the board" (other items got rows) inside a given
-  // window -- simulates wasPolledWithoutThisItem()'s query.
-  gapRunsInWindow: boolean;
+  priorRows: { fetched_at: string; run_id: string | null; raw_response: unknown }[];
+  // run_ids that have SOME OTHER external_id's row somewhere in the queried
+  // window, before exclusion -- simulates wasPolledWithoutThisItem()'s real
+  // query, including its run_id != ALL(excludeRunIds) filter, so a test can
+  // prove same-run contamination is actually excluded, not just assume it.
+  otherRunIdsInWindow: string[];
   // simulates hasPriorRequisitionIdSighting()'s query.
   priorRequisitionIdSighting: boolean;
 }
 
 function fakePool(state: Partial<FakeState>): Pool {
-  const { priorRows = [], gapRunsInWindow = false, priorRequisitionIdSighting = false } = state;
+  const { priorRows = [], otherRunIdsInWindow = [], priorRequisitionIdSighting = false } = state;
   return {
-    query: vi.fn(async (sql: string) => {
-      if (sql.includes("SELECT fetched_at, raw_response")) {
+    query: vi.fn(async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("SELECT fetched_at, run_id, raw_response")) {
         return { rows: priorRows };
       }
       if (sql.includes("SELECT DISTINCT run_id")) {
-        return { rows: gapRunsInWindow ? [{ run_id: "other-run" }] : [] };
+        // params: [source, externalId, excludeRunIds, from, to] -- mirrors
+        // the real query's "run_id != ALL($3::uuid[])" filter.
+        const excludeRunIds = (params[2] as string[]) ?? [];
+        const remaining = otherRunIdsInWindow.filter((id) => !excludeRunIds.includes(id));
+        return { rows: remaining.map((run_id) => ({ run_id })) };
       }
       if (sql.includes("requisition_id' = $4")) {
         return { rows: [{ n: priorRequisitionIdSighting ? 1 : 0 }] };
@@ -35,7 +41,7 @@ const extractText = (rawResponse: unknown) => rawResponse as { title: string; de
 const baseInput = {
   source: "greenhouse",
   externalId: "job-1",
-  runId: "run-3",
+  runId: "11111111-1111-1111-1111-111111111113",
   rawRowId: "row-3",
   fetchedAt: new Date("2026-08-20T00:00:00Z"),
   title: "Data Analyst",
@@ -84,29 +90,31 @@ describe("computeDiff — first sighting (no prior raw_requisitions rows)", () =
 });
 
 describe("computeDiff — repeat sighting (prior rows exist)", () => {
+  const priorRunId = "11111111-1111-1111-1111-111111111111";
   const prior = [
     {
       fetched_at: "2026-08-13T00:00:00Z",
+      run_id: priorRunId,
       raw_response: { title: "Data Analyst", description: "<div>Analyze data.</div>" },
     },
   ];
 
   it("criterion 3: identical title/description since the prior fetch -> no-op (churn 0, repost 0)", async () => {
-    const pool = fakePool({ priorRows: prior, gapRunsInWindow: false });
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [] });
     const result = await computeDiff(pool, baseInput);
     expect(result.descriptionChurn).toBe(0);
     expect(result.repostCount).toBe(0);
   });
 
   it("criterion 2: title changed, no board-poll gap -> churn +1, repost stays 0", async () => {
-    const pool = fakePool({ priorRows: prior, gapRunsInWindow: false });
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [] });
     const result = await computeDiff(pool, { ...baseInput, title: "Senior Data Analyst" });
     expect(result.descriptionChurn).toBe(1);
     expect(result.repostCount).toBe(0);
   });
 
   it("both title and description changed in the same fetch -> 1 increment, not 2 (06_decisions/044)", async () => {
-    const pool = fakePool({ priorRows: prior, gapRunsInWindow: false });
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [] });
     const result = await computeDiff(pool, {
       ...baseInput,
       title: "Senior Data Analyst",
@@ -117,21 +125,47 @@ describe("computeDiff — repeat sighting (prior rows exist)", () => {
 
   it("a whitespace/markup-only difference is not churn (normalized comparison)", async () => {
     const reflowed = [
-      { fetched_at: "2026-08-13T00:00:00Z", raw_response: { title: "Data Analyst", description: "  <div>Analyze   data.</div>  " } },
+      {
+        fetched_at: "2026-08-13T00:00:00Z",
+        run_id: priorRunId,
+        raw_response: { title: "Data Analyst", description: "  <div>Analyze   data.</div>  " },
+      },
     ];
-    const pool = fakePool({ priorRows: reflowed, gapRunsInWindow: false });
+    const pool = fakePool({ priorRows: reflowed, otherRunIdsInWindow: [] });
     const result = await computeDiff(pool, baseInput);
     expect(result.descriptionChurn).toBe(0);
   });
 
-  it("criterion 1: this source was polled (another item got a row) in the gap between fetches, without this item -> repost +1", async () => {
-    const pool = fakePool({ priorRows: prior, gapRunsInWindow: true });
+  it("criterion 1: a genuinely DIFFERENT run polled this source without this item -> repost +1", async () => {
+    // A run that is neither prior's own run nor this fetch's own run --
+    // this is the only shape that should count as a real gap.
+    const genuinelyOtherRun = "22222222-2222-2222-2222-222222222222";
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [genuinelyOtherRun] });
     const result = await computeDiff(pool, baseInput);
     expect(result.repostCount).toBe(1);
   });
 
+  it("regression (CI run #8 on f1b374c): another item's row from the SAME run as either bracketing sighting must NOT count as a gap", async () => {
+    // Only run_ids matching prior's own run and this fetch's own run have
+    // other rows -- i.e. board-mates persisted moments earlier/later within
+    // the SAME two ingestion calls, not a genuine intervening poll. Before
+    // the fix, wasPolledWithoutThisItem() didn't exclude these, producing a
+    // phantom repost for an item that never actually disappeared.
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [priorRunId, baseInput.runId] });
+    const result = await computeDiff(pool, baseInput);
+    expect(result.repostCount).toBe(0);
+  });
+
+  it("idempotency: calling computeDiff twice against the same raw_requisitions state produces the same result both times", async () => {
+    const genuinelyOtherRun = "33333333-3333-3333-3333-333333333333";
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [genuinelyOtherRun] });
+    const first = await computeDiff(pool, baseInput);
+    const second = await computeDiff(pool, baseInput);
+    expect(second).toEqual(first);
+  });
+
   it("daysOpen is anchored to this fetch's fetchedAt, not wall-clock now (reproducible re-runs, criterion 3)", async () => {
-    const pool = fakePool({ priorRows: prior, gapRunsInWindow: false });
+    const pool = fakePool({ priorRows: prior, otherRunIdsInWindow: [] });
     const result = await computeDiff(pool, baseInput);
     expect(result.daysOpen).toBe(50); // 2026-07-01 -> 2026-08-20
   });

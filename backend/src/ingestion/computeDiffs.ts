@@ -27,6 +27,7 @@ export interface ComputeDiffInput {
 
 interface HistoryRow {
   fetched_at: string;
+  run_id: string | null;
   raw_response: unknown;
 }
 
@@ -77,26 +78,44 @@ async function hasPriorRequisitionIdSighting(
   externalId: string,
   requisitionId: string,
   beforeFetchedAt: Date,
+  excludeRunId: string,
 ): Promise<boolean> {
+  // excludeRunId guards the same same-run false-positive class as
+  // wasPolledWithoutThisItem below: another job sharing this requisition_id
+  // could be persisted moments earlier in THIS SAME fetch (array iteration
+  // order), which is not a genuine prior sighting.
   const { rows } = await pool.query<{ n: number }>(
     `SELECT count(*)::int AS n
        FROM raw_requisitions
       WHERE source = $1
         AND external_id != $2
         AND fetched_at < $3
+        AND (run_id IS NULL OR run_id != $5)
         AND raw_response ->> 'requisition_id' = $4`,
-    [source, externalId, beforeFetchedAt.toISOString(), requisitionId],
+    [source, externalId, beforeFetchedAt.toISOString(), requisitionId, excludeRunId],
   );
   return (rows[0]?.n ?? 0) > 0;
 }
 
 /**
- * Was this source polled (any OTHER external_id got a row) at some point
- * strictly between `from` and `to`, without `externalId` itself appearing?
- * That's the real "the board was checked and this item wasn't there"
- * signal absence-based repost detection needs (06_decisions/043) -- a bare
- * fetched_at gap on the item's own rows can't distinguish "board polled,
- * item absent" from "board simply not polled again" on its own.
+ * Was this source polled (any OTHER external_id got a row, under a
+ * DIFFERENT run than either of this item's own two bracketing sightings) at
+ * some point strictly between `from` and `to`, without `externalId` itself
+ * appearing? That's the real "the board was checked and this item wasn't
+ * there" signal absence-based repost detection needs (06_decisions/043) --
+ * a bare fetched_at gap on the item's own rows can't distinguish "board
+ * polled, item absent" from "board simply not polled again" on its own.
+ *
+ * excludeRunIds MUST include both `from`'s and `to`'s own run_id -- items
+ * within one ingestRequisitions() call are persisted SEQUENTIALLY, not
+ * simultaneously (one INSERT per item, in array order), so another item
+ * from the very same run as `from` or `to` can land a row a few
+ * milliseconds inside this window purely from iteration order. Without
+ * this exclusion, that reads as a false "the board was polled without me"
+ * -- the bug behind CI run #8's failures on f1b374c: an unchanged item
+ * (first in its board's array every run) picked up a phantom repost from
+ * its own board-mates' rows in the SAME run, landing just after it in
+ * processing order.
  */
 async function wasPolledWithoutThisItem(
   pool: Pool,
@@ -104,6 +123,7 @@ async function wasPolledWithoutThisItem(
   externalId: string,
   from: Date,
   to: Date,
+  excludeRunIds: string[],
 ): Promise<boolean> {
   const { rows } = await pool.query<{ run_id: string }>(
     `SELECT DISTINCT run_id
@@ -111,9 +131,10 @@ async function wasPolledWithoutThisItem(
       WHERE source = $1
         AND external_id != $2
         AND run_id IS NOT NULL
-        AND fetched_at > $3
-        AND fetched_at < $4`,
-    [source, externalId, from.toISOString(), to.toISOString()],
+        AND run_id != ALL($3::uuid[])
+        AND fetched_at > $4
+        AND fetched_at < $5`,
+    [source, externalId, excludeRunIds, from.toISOString(), to.toISOString()],
   );
   return rows.length > 0;
 }
@@ -133,7 +154,7 @@ async function wasPolledWithoutThisItem(
  */
 export async function computeDiff(pool: Pool, input: ComputeDiffInput): Promise<DiffResult> {
   const { rows: priorRows } = await pool.query<HistoryRow>(
-    `SELECT fetched_at, raw_response
+    `SELECT fetched_at, run_id, raw_response
        FROM raw_requisitions
       WHERE source = $1 AND external_id = $2 AND id != $3
       ORDER BY fetched_at ASC`,
@@ -147,7 +168,14 @@ export async function computeDiff(pool: Pool, input: ComputeDiffInput): Promise<
     // requisition_id is exactly the "reopened under a new job id" pattern.
     const repostCount =
       input.requisitionId &&
-      (await hasPriorRequisitionIdSighting(pool, input.source, input.externalId, input.requisitionId, input.fetchedAt))
+      (await hasPriorRequisitionIdSighting(
+        pool,
+        input.source,
+        input.externalId,
+        input.requisitionId,
+        input.fetchedAt,
+        input.runId,
+      ))
         ? 1
         : 0;
 
@@ -158,16 +186,20 @@ export async function computeDiff(pool: Pool, input: ComputeDiffInput): Promise<
     };
   }
 
-  const history: { fetchedAt: Date; title: string; description: string }[] = priorRows.map((row) => {
-    const extracted = input.extractText(row.raw_response);
-    return {
-      fetchedAt: new Date(row.fetched_at),
-      title: normalizeChurnText(extracted.title),
-      description: normalizeChurnText(extracted.description),
-    };
-  });
+  const history: { fetchedAt: Date; runId: string | null; title: string; description: string }[] = priorRows.map(
+    (row) => {
+      const extracted = input.extractText(row.raw_response);
+      return {
+        fetchedAt: new Date(row.fetched_at),
+        runId: row.run_id,
+        title: normalizeChurnText(extracted.title),
+        description: normalizeChurnText(extracted.description),
+      };
+    },
+  );
   history.push({
     fetchedAt: input.fetchedAt,
+    runId: input.runId,
     title: normalizeChurnText(input.title),
     description: normalizeChurnText(input.description),
   });
@@ -183,7 +215,10 @@ export async function computeDiff(pool: Pool, input: ComputeDiffInput): Promise<
     const prev = history[i - 1];
     const curr = history[i];
 
-    if (await wasPolledWithoutThisItem(pool, input.source, input.externalId, prev.fetchedAt, curr.fetchedAt)) {
+    const excludeRunIds = [prev.runId, curr.runId].filter((id): id is string => id !== null);
+    if (
+      await wasPolledWithoutThisItem(pool, input.source, input.externalId, prev.fetchedAt, curr.fetchedAt, excludeRunIds)
+    ) {
       repostCount += 1;
     }
 
