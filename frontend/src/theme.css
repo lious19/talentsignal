@@ -12,7 +12,17 @@
   --success:#15803d; --warning:#b45309; --danger:#dc2626;
   --radius:10px;
   --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  --shadow-hover:0 4px 12px rgba(16,24,40,.08), 0 2px 4px rgba(16,24,40,.06);
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+}
+
+/* Dark mode: color tokens only (bg/surface/border/text/mute), toggled via
+   TopBar's Sun/Moon button (theme.ts). Accent, radius, shadow, and the
+   spacing scale intentionally stay the same in both modes -- accent blue
+   already reads fine against a dark surface. */
+:root[data-theme="dark"]{
+  --bg:#0f1419; --surface:#1a1f2b; --border:#2a3040;
+  --text:#e6e9ef; --mute:#8b93a5;
 }
 
 *{ box-sizing:border-box; }
@@ -59,15 +69,27 @@ body{
 .sidebar-nav{ display:flex; flex-direction:column; gap:2px; }
 
 .navbtn{
+  position:relative;
   display:flex; align-items:center; gap:var(--space-3);
   width:100%; text-align:left;
   background:transparent; color:var(--mute);
   border:none; border-radius:8px;
   padding:.55em .75em; margin:0; font-weight:600; font-size:14px;
-  box-shadow:none; cursor:pointer; transition:.12s;
+  box-shadow:none; cursor:pointer;
+  transition:background-color 150ms ease, color 150ms ease;
 }
 .navbtn:hover{ background:var(--bg); color:var(--text); transform:none; }
 .navbtn.on{ background:var(--accent-soft); color:var(--accent); }
+/* active-item indicator: a slim bar flush against the sidebar's left edge
+   (offset matches .sidebar's own padding, --space-3) that grows in rather
+   than snapping, so switching sections reads as a slide, not a toggle. */
+.navbtn::before{
+  content:""; position:absolute; left:calc(var(--space-3) * -1); top:50%;
+  width:3px; height:0; border-radius:0 2px 2px 0;
+  background:var(--accent); transform:translateY(-50%);
+  transition:height 200ms ease;
+}
+.navbtn.on::before{ height:60%; }
 
 /* ---- app main column: topbar + content ---- */
 .app-main{ display:flex; flex-direction:column; min-width:0; }
@@ -86,6 +108,15 @@ body{
   padding:.4em .85em; font-size:13px;
 }
 .topbar-logout:hover{ background:var(--bg); color:var(--text); transform:none; }
+
+.topbar-theme-toggle{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:32px; height:32px; padding:0; margin:0;
+  background:transparent; color:var(--mute);
+  border:1px solid var(--border); border-radius:8px; box-shadow:none;
+  transition:background-color 150ms ease, color 150ms ease;
+}
+.topbar-theme-toggle:hover{ background:var(--bg); color:var(--text); transform:none; }
 
 .content{ padding:var(--space-5); max-width:1200px; width:100%; }
 
@@ -114,9 +145,12 @@ section[aria-label]{
   margin:0 0 1.3rem;
   box-shadow:var(--shadow);
   position:relative;
+  transition:box-shadow 200ms ease;
 }
+section[aria-label]:hover{ box-shadow:var(--shadow-hover); }
 /* keep the health pill exempt from the card treatment above */
-section[aria-label="backend health"]{ box-shadow:none; padding:.3em .95em; }
+section[aria-label="backend health"]{ box-shadow:none; padding:.3em .95em; transition:none; }
+section[aria-label="backend health"]:hover{ box-shadow:none; }
 
 /* ---- headings ---- */
 h2{
@@ -214,6 +248,11 @@ hr{ border:none; border-top:1px solid var(--border); margin:1.1rem 0; }
   border-radius:var(--radius); box-shadow:var(--shadow);
   padding:var(--space-6) var(--space-5);
   margin:0;
+  animation:fade-in-up 250ms ease;
+}
+@keyframes fade-in-up{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:translateY(0); }
 }
 .auth-brand{ display:flex; flex-direction:column; align-items:center; gap:var(--space-2); margin-bottom:var(--space-4); }
 .auth-brand-mark{
@@ -237,7 +276,9 @@ hr{ border:none; border-top:1px solid var(--border); margin:1.1rem 0; }
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); padding:var(--space-4);
   position:relative;
+  transition:box-shadow 200ms ease;
 }
+.stat-tile:hover{ box-shadow:var(--shadow-hover); }
 .stat-tile-icon{
   display:flex; align-items:center; justify-content:center;
   width:40px; height:40px; border-radius:9999px;

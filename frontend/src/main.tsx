@@ -9,6 +9,12 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./theme.css";
+import { applyTheme, getStoredTheme } from "./theme";
+
+// Applied before the first render (not inside a React effect) so the stored
+// theme is already correct for the very first paint -- no light-then-dark
+// flash. Defaults to "light" when nothing is stored yet.
+applyTheme(getStoredTheme());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
