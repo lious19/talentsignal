@@ -34,6 +34,7 @@ import { RoleGate } from "./RoleGate";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { clearStoredToken, getStoredToken, getStoredEmail } from "./auth";
+import { getStoredSidebarState, storeSidebarState } from "./sidebarState";
 
 type HealthState =
   | { status: "loading" }
@@ -54,6 +55,9 @@ export function App() {
   // only the active one is visible — the others carry the `hidden` attribute.
   // Overview is now the default landing view (was "opportunities").
   const [view, setView] = useState<string>("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => getStoredSidebarState() === "closed",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +83,12 @@ export function App() {
     clearStoredToken();
     setToken(null);
     setAuthView("login");
+  }
+
+  function toggleSidebarCollapsed() {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    storeSidebarState(next ? "closed" : "open");
   }
 
   // A small helper so each nav button is written the same way. `key` matches the
@@ -122,8 +132,8 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar>
+    <div className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebarCollapsed}>
         {/* Each item is role-gated the same way its screen is, so a role
             only ever sees tabs it is allowed to open. */}
         <RoleGate allow={["admin", "sales", "recruiter"]}>
