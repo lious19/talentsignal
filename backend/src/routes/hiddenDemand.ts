@@ -122,8 +122,11 @@ const REASONS_DELIMITER = "\u001F";
 // statement's size instead of raising the timeout (which would hide the same
 // ceiling from every other query on this pool, not just this one). Tunable:
 // lower this if a single chunk is ever observed to approach 5s on its own
-// (see decision doc for the reasoning).
-export const UPSERT_CHUNK_SIZE = 200;
+// (see decision doc for the reasoning). Lowered 200 -> 100: a chunk of 200
+// still hit the timeout on a live run against Render, whose observed
+// statement latency varies enough that 200 wasn't a safe margin (see
+// decision doc's addendum).
+export const UPSERT_CHUNK_SIZE = 100;
 
 /**
  * Scores (confidence + hard-to-fill) and upserts ONE CHUNK in ONE statement

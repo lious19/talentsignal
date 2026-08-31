@@ -80,3 +80,18 @@ chunk count makes the sequential loop itself the bottleneck (a run taking minute
 because of many small chunks, each waiting on the last), that's a signal to reconsider bounded
 parallelism — not attempted here, since a single first fix should prove the failure mode is
 actually gone before adding more complexity.
+
+## Addendum, 2026-08-31: chunk size lowered 200 -> 100
+
+Exactly the failure mode this doc flagged as the "what would make this wrong" case actually
+happened: the second live `ingest:once` run against Render's deployed Postgres hit `57014
+canceling statement due to statement timeout` on `chunkStart:0, chunkSize:200` — one full
+200-row chunk timed out and was dropped (`opportunitiesUpserted: 836` instead of 1036), even
+though the first run's chunks had all landed cleanly. Increased resolution needed because 200
+was empirically too coarse on Render's observed latency variance — the same chunk size that
+worked on run 1 didn't reliably clear the 5s ceiling on run 2, so headroom, not just a one-time
+measurement, is what this number needs to encode. `UPSERT_CHUNK_SIZE` is now 100 (halving the
+per-statement row count, doubling the number of sequential round trips for a given batch size).
+Chunk-level failure isolation (above) meant this degraded gracefully rather than losing the
+whole run — but a dropped chunk is still silently-missing data until the next re-run picks it
+up, so this is worth watching for a repeat even at 100.

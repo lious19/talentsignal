@@ -88,15 +88,15 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.opportunities).toHaveLength(500);
-    // requireAuth never touches the DB. 06_decisions/042: 500 signals chunk
-    // into 200 + 200 + 100 (UPSERT_CHUNK_SIZE), one query per chunk — a
-    // regression back to a per-row loop would make this 500, not 3.
-    expect(pool.query).toHaveBeenCalledTimes(3);
+    // requireAuth never touches the DB. 06_decisions/042 (updated): 500
+    // signals chunk into 5 x 100 (UPSERT_CHUNK_SIZE), one query per chunk —
+    // a regression back to a per-row loop would make this 500, not 5.
+    expect(pool.query).toHaveBeenCalledTimes(5);
   });
 
-  it("06_decisions/042: 500 signals issue exactly 3 chunked SQL statements (200 + 200 + 100), not 1", async () => {
+  it("06_decisions/042: 500 signals issue exactly 5 chunked SQL statements (100 x 5), not 1", async () => {
     const { pool } = createFakeOpportunitiesPool();
-    expect(UPSERT_CHUNK_SIZE).toBe(200);
+    expect(UPSERT_CHUNK_SIZE).toBe(100);
     const signals: MarketSignal[] = Array.from({ length: 500 }, (_, i) => ({
       source: "mock-job-board",
       externalId: `chunk-${i}`,
@@ -110,11 +110,11 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
     const opportunities = await upsertBatch(pool, signals);
 
     expect(opportunities).toHaveLength(500);
-    expect(pool.query).toHaveBeenCalledTimes(3);
+    expect(pool.query).toHaveBeenCalledTimes(5);
     const callSizes = (pool.query as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
       (call) => (call[1] as unknown[][])[0].length,
     );
-    expect(callSizes).toEqual([200, 200, 100]);
+    expect(callSizes).toEqual([100, 100, 100, 100, 100]);
   });
 
   it("idempotency: re-analyzing the same batch updates rows, not duplicates them", async () => {
