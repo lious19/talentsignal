@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { storeToken, storeRole } from "./auth";
+import { storeToken, storeRole, storeEmail } from "./auth";
 
 interface RegisterScreenProps {
   onSuccess: (token: string) => void;
@@ -47,6 +47,7 @@ export function RegisterScreen({ onSuccess, onSwitchToLogin }: RegisterScreenPro
 
       storeToken(loginBody.token);
       storeRole(loginBody.user.role);
+      storeEmail(loginBody.user.email ?? email);
       onSuccess(loginBody.token);
     } catch {
       setError("network error — could not reach the server");
@@ -56,44 +57,51 @@ export function RegisterScreen({ onSuccess, onSwitchToLogin }: RegisterScreenPro
   }
 
   return (
-    <section aria-label="register">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="register-email">Email</label>
-          <br />
-          <input
-            id="register-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+    <div className="auth-shell">
+      <section aria-label="register" className="auth-card">
+        <div className="auth-brand">
+          <span className="auth-brand-mark">TS</span>
+          <span className="auth-brand-name">TalentSignal</span>
         </div>
-        <div>
-          <label htmlFor="register-password">Password (10-72 characters)</label>
-          <br />
-          <input
-            id="register-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={10}
-            maxLength={72}
-            required
-          />
-        </div>
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Registering..." : "Register"}
-        </button>
-      </form>
-      {error && <p role="alert">{error}</p>}
-      <p>
-        Already have an account?{" "}
-        <button type="button" onClick={onSwitchToLogin}>
-          Log in
-        </button>
-      </p>
-    </section>
+        <h2>Register</h2>
+        <p className="auth-subtitle">Create your account</p>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="register-email">Email</label>
+            <br />
+            <input
+              id="register-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="register-password">Password (10-72 characters)</label>
+            <br />
+            <input
+              id="register-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={10}
+              maxLength={72}
+              required
+            />
+          </div>
+          <button type="submit" disabled={submitting} className="auth-submit">
+            {submitting ? "Registering..." : "Register"}
+          </button>
+        </form>
+        {error && <p role="alert">{error}</p>}
+        <p className="auth-switch">
+          Already have an account?{" "}
+          <button type="button" onClick={onSwitchToLogin}>
+            Log in
+          </button>
+        </p>
+      </section>
+    </div>
   );
 }

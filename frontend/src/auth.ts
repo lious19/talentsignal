@@ -6,6 +6,10 @@ export const TOKEN_STORAGE_KEY = "ts_token";
 // every request; this is just so components like CandidatesScreen don't have
 // to decode the token themselves to decide whether to show contactInfo.
 export const ROLE_STORAGE_KEY = "ts_role";
+// Display-only, same non-security status as ROLE_STORAGE_KEY above — read by
+// TopBar to show who's logged in. Never sent to the backend or used in any
+// auth decision.
+export const EMAIL_STORAGE_KEY = "ts_email";
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -23,7 +27,16 @@ export function storeRole(role: string): void {
   localStorage.setItem(ROLE_STORAGE_KEY, role);
 }
 
+export function getStoredEmail(): string | null {
+  return localStorage.getItem(EMAIL_STORAGE_KEY);
+}
+
+export function storeEmail(email: string): void {
+  localStorage.setItem(EMAIL_STORAGE_KEY, email);
+}
+
 export function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
   localStorage.removeItem(ROLE_STORAGE_KEY);
+  localStorage.removeItem(EMAIL_STORAGE_KEY);
 }

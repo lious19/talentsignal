@@ -1,4 +1,21 @@
 import { useEffect, useState } from "react";
+import {
+  LayoutDashboard,
+  Briefcase,
+  Target,
+  Building2,
+  Users,
+  ClipboardList,
+  Link2,
+  Columns3,
+  Package,
+  Handshake,
+  Sparkles,
+  BarChart3,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
+import { OverviewScreen } from "./OverviewScreen";
 import { OpportunitiesList } from "./OpportunitiesList";
 import { HardToFillTargeting } from "./HardToFillTargeting";
 import { LoginScreen } from "./LoginScreen";
@@ -14,7 +31,9 @@ import { RecommendationScreen } from "./RecommendationScreen";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { PrivacyRequestScreen } from "./PrivacyRequestScreen";
 import { RoleGate } from "./RoleGate";
-import { clearStoredToken, getStoredToken } from "./auth";
+import { Sidebar } from "./Sidebar";
+import { TopBar } from "./TopBar";
+import { clearStoredToken, getStoredToken, getStoredEmail } from "./auth";
 
 type HealthState =
   | { status: "loading" }
@@ -30,10 +49,11 @@ export function App() {
   // would call it.
   const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [authView, setAuthView] = useState<AuthView>("login");
-  // Which screen the top nav is currently showing. Every screen stays mounted
-  // (so it keeps fetching and so the role-gating tests still see it); only the
-  // active one is visible — the others carry the `hidden` attribute.
-  const [view, setView] = useState<string>("opportunities");
+  // Which screen the sidebar nav is currently showing. Every screen stays
+  // mounted (so it keeps fetching and so the role-gating tests still see it);
+  // only the active one is visible — the others carry the `hidden` attribute.
+  // Overview is now the default landing view (was "opportunities").
+  const [view, setView] = useState<string>("overview");
 
   useEffect(() => {
     let cancelled = false;
@@ -63,55 +83,81 @@ export function App() {
 
   // A small helper so each nav button is written the same way. `key` matches the
   // `view` value that reveals its screen below.
-  function navBtn(key: string, label: string) {
+  function navBtn(key: string, label: string, Icon: LucideIcon) {
     return (
       <button
         type="button"
         className={view === key ? "navbtn on" : "navbtn"}
         onClick={() => setView(key)}
       >
-        {label}
+        <Icon size={17} aria-hidden="true" />
+        <span>{label}</span>
       </button>
     );
   }
 
-  return (
-    <main>
-      <header className="appbar">
-        <h1>TalentSignal</h1>
-        <section aria-label="backend health">
-          {health.status === "loading" && <p>Checking backend...</p>}
-          {health.status === "ok" && <p>Backend reachable — db: {health.db}</p>}
-          {health.status === "error" && <p>Backend unreachable</p>}
-        </section>
-        {token && (
-          <button type="button" onClick={handleLogout}>
-            Log out
-          </button>
+  const healthPill = (
+    <section aria-label="backend health">
+      {health.status === "loading" && <p>Checking backend...</p>}
+      {health.status === "ok" && <p>Backend reachable — db: {health.db}</p>}
+      {health.status === "error" && <p>Backend unreachable</p>}
+    </section>
+  );
+
+  if (!token) {
+    // The health pill still needs to render pre-login — App.test.tsx's
+    // happy/failure-path tests check it with no stored token — but it would
+    // clutter the branded card, so it sits as a small unobtrusive corner
+    // badge rather than inside the card itself.
+    return (
+      <>
+        <div className="auth-health-badge">{healthPill}</div>
+        {authView === "login" ? (
+          <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />
+        ) : (
+          <RegisterScreen onSuccess={setToken} onSwitchToLogin={() => setAuthView("login")} />
         )}
-      </header>
+      </>
+    );
+  }
 
-      {token ? (
-        <>
-          {/* Top navigation — each item is role-gated the same way its screen is,
-              so a role only ever sees tabs it is allowed to open. */}
-          <nav className="topnav" aria-label="sections">
-            <RoleGate allow={["admin", "sales"]}>{navBtn("opportunities", "Opportunities")}</RoleGate>
-            <RoleGate allow={["admin", "sales"]}>{navBtn("targeting", "Targeting")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("clients", "Clients")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("candidates", "Candidates")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("jobs", "Jobs")}</RoleGate>
-            <RoleGate allow={["admin", "sales"]}>{navBtn("match", "Match")}</RoleGate>
-            <RoleGate allow={["admin", "sales"]}>{navBtn("pipeline", "Pipeline")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("packages", "Packages")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("relationships", "Relationships")}</RoleGate>
-            <RoleGate allow={["admin", "recruiter"]}>{navBtn("recommendations", "Recommendations")}</RoleGate>
-            <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("analytics", "Analytics")}</RoleGate>
-            <RoleGate allow={["admin", "recruiter"]}>{navBtn("privacy", "Privacy")}</RoleGate>
-          </nav>
+  return (
+    <div className="app-shell">
+      <Sidebar>
+        {/* Each item is role-gated the same way its screen is, so a role
+            only ever sees tabs it is allowed to open. */}
+        <RoleGate allow={["admin", "sales", "recruiter"]}>
+          {navBtn("overview", "Overview", LayoutDashboard)}
+        </RoleGate>
+        <RoleGate allow={["admin", "sales"]}>{navBtn("opportunities", "Opportunities", Briefcase)}</RoleGate>
+        <RoleGate allow={["admin", "sales"]}>{navBtn("targeting", "Targeting", Target)}</RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("clients", "Clients", Building2)}</RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("candidates", "Candidates", Users)}</RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("jobs", "Jobs", ClipboardList)}</RoleGate>
+        <RoleGate allow={["admin", "sales"]}>{navBtn("match", "Match", Link2)}</RoleGate>
+        <RoleGate allow={["admin", "sales"]}>{navBtn("pipeline", "Pipeline", Columns3)}</RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("packages", "Packages", Package)}</RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>
+          {navBtn("relationships", "Relationships", Handshake)}
+        </RoleGate>
+        <RoleGate allow={["admin", "recruiter"]}>
+          {navBtn("recommendations", "Recommendations", Sparkles)}
+        </RoleGate>
+        <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("analytics", "Analytics", BarChart3)}</RoleGate>
+        <RoleGate allow={["admin", "recruiter"]}>{navBtn("privacy", "Privacy", ShieldCheck)}</RoleGate>
+      </Sidebar>
 
+      <div className="app-main">
+        <TopBar health={healthPill} email={getStoredEmail()} onLogout={handleLogout} />
+
+        <main className="content">
           {/* Role gates per 06_decisions/022's permission matrix — UX only,
               the backend requireRole gate is the real boundary. */}
+          <div hidden={view !== "overview"}>
+            <RoleGate allow={["admin", "sales", "recruiter"]}>
+              <OverviewScreen />
+            </RoleGate>
+          </div>
           <div hidden={view !== "opportunities"}>
             <RoleGate allow={["admin", "sales"]}>
               <section aria-label="opportunities">
@@ -181,12 +227,8 @@ export function App() {
               <PrivacyRequestScreen />
             </RoleGate>
           </div>
-        </>
-      ) : authView === "login" ? (
-        <LoginScreen onSuccess={setToken} onSwitchToRegister={() => setAuthView("register")} />
-      ) : (
-        <RegisterScreen onSuccess={setToken} onSwitchToLogin={() => setAuthView("login")} />
-      )}
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }
