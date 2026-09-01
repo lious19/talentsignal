@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Menu, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface SidebarProps {
@@ -15,7 +15,7 @@ export function Sidebar({ children, collapsed, onToggleCollapsed }: SidebarProps
   return (
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"} aria-label="main navigation">
       <div className="sidebar-brand">
-        <span className="sidebar-brand-mark">TS</span>
+        <Sparkles size={20} aria-hidden="true" className="sidebar-brand-mark" />
         <span className="sidebar-brand-name">TalentSignal</span>
         <button
           type="button"
@@ -23,7 +23,7 @@ export function Sidebar({ children, collapsed, onToggleCollapsed }: SidebarProps
           className="sidebar-collapse-toggle"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronsRight size={15} aria-hidden="true" /> : <ChevronsLeft size={15} aria-hidden="true" />}
+          <Menu size={15} aria-hidden="true" />
         </button>
       </div>
       <nav className="sidebar-nav">{children}</nav>

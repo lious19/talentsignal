@@ -120,13 +120,20 @@ function StatTile({
   icon: Icon,
   accentVar,
   realBadge,
+  progress,
 }: {
   label: string;
   state: CountState;
   icon: LucideIcon;
   accentVar: "--accent" | "--accent-2";
   realBadge: string;
+  // Optional, and only ever passed when both numbers come from data already
+  // fetched on this screen -- no tile fabricates a denominator it doesn't
+  // have (e.g. Clients/Candidates/Opportunities have no natural "out of
+  // what" and stay bar-less).
+  progress?: { current: number; total: number };
 }) {
+  const showProgress = state.status === "ok" && progress && progress.total > 0;
   return (
     <div className="stat-tile" role="group" aria-label={label}>
       <div className="stat-tile-icon" style={{ background: `var(${accentVar})` }}>
@@ -136,6 +143,19 @@ function StatTile({
       <span className="stat-tile-label">{label}</span>
       {state.status === "ok" && <span className="stat-tile-real-badge">{realBadge}</span>}
       {state.status === "error" && <span className="stat-tile-error">Could not load</span>}
+      {showProgress && (
+        <div className="stat-tile-progress">
+          <div className="stat-tile-progress-track">
+            <div
+              className="stat-tile-progress-fill"
+              style={{ width: `${Math.min(100, (progress.current / progress.total) * 100)}%` }}
+            />
+          </div>
+          <span className="stat-tile-progress-label">
+            {progress.current} of {progress.total} opportunities
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -311,6 +331,11 @@ export function OverviewScreen() {
               icon={Flame}
               accentVar="--accent-2"
               realBadge="flagged"
+              progress={
+                hardToFillCount.status === "ok" && opportunitiesCount.status === "ok"
+                  ? { current: hardToFillCount.count, total: opportunitiesCount.count }
+                  : undefined
+              }
             />
           </>
         )}
