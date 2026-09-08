@@ -1,0 +1,724 @@
+<title>Role-Family Scarcity, Measured</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --ink: #171a20;
+    --ink-muted: #5a6270;
+    --ink-faint: #8991a0;
+    --border: #dee2e9;
+    --border-strong: #c3c9d3;
+
+    --measured: #0aa38c;
+    --measured-bg: #e3f6f2;
+    --curated: #c17a1b;
+    --curated-bg: #faf0e0;
+    --excluded: #7a5fbf;
+    --excluded-bg: #efeafb;
+    --none: #9aa0ac;
+    --none-bg: #eef0f2;
+
+    --danger: #a5342f;
+    --danger-bg: #fbe9e7;
+    --danger-border: #e3a6a0;
+
+    --ref-line: #2b3140;
+
+    --font-display: "IBM Plex Sans", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161b;
+      --surface: #1c1f26;
+      --surface-2: #23272f;
+      --ink: #e7e9ee;
+      --ink-muted: #a2a9b6;
+      --ink-faint: #767d8a;
+      --border: #2c3038;
+      --border-strong: #3b404b;
+
+      --measured: #1b9a83;
+      --measured-bg: #113028;
+      --curated: #bd7f2e;
+      --curated-bg: #332a17;
+      --excluded: #8362e8;
+      --excluded-bg: #241c3d;
+      --none: #868c9a;
+      --none-bg: #262932;
+
+      --danger: #e2827a;
+      --danger-bg: #3a211f;
+      --danger-border: #6b3a35;
+
+      --ref-line: #aeb4c0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161b;
+    --surface: #1c1f26;
+    --surface-2: #23272f;
+    --ink: #e7e9ee;
+    --ink-muted: #a2a9b6;
+    --ink-faint: #767d8a;
+    --border: #2c3038;
+    --border-strong: #3b404b;
+
+    --measured: #1b9a83;
+    --measured-bg: #113028;
+    --curated: #bd7f2e;
+    --curated-bg: #332a17;
+    --excluded: #8362e8;
+    --excluded-bg: #241c3d;
+    --none: #868c9a;
+    --none-bg: #262932;
+
+    --danger: #e2827a;
+    --danger-bg: #3a211f;
+    --danger-border: #6b3a35;
+
+    --ref-line: #aeb4c0;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--measured-bg); color: var(--ink); }
+
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--measured);
+    font-weight: 600;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.12;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .dek {
+    font-size: 16.5px;
+    color: var(--ink-muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .runmeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+  .runmeta b { color: var(--ink-muted); font-weight: 500; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px 3px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tag-live { background: var(--measured-bg); color: var(--measured); }
+  .tag-excluded { background: var(--excluded-bg); color: var(--excluded); }
+  .tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  section { margin-bottom: 52px; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    margin: 2px 0 8px;
+    text-wrap: balance;
+  }
+  .section-note {
+    font-size: 14.5px;
+    color: var(--ink-muted);
+    max-width: 68ch;
+    margin: 0 0 20px;
+  }
+
+  /* summary stat row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat .n {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .stat .l {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+
+  /* family bar chart */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px 18px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 96px;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .bar-row:last-child { border-bottom: none; }
+  .bar-name {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .bar-sub {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 1px;
+  }
+  .bar-track {
+    position: relative;
+    height: 22px;
+    background: var(--surface-2);
+    border-radius: 5px;
+    overflow: visible;
+  }
+  .bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+  }
+  .bar-fill.measured { background: var(--measured); }
+  .bar-fill.curated { background: var(--curated); }
+  .refline {
+    position: absolute;
+    top: -6px; bottom: -6px;
+    width: 0;
+    border-left: 2px dashed var(--ref-line);
+  }
+  .bar-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    text-align: right;
+    color: var(--ink-muted);
+  }
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .swatch.measured { background: var(--measured); }
+  .swatch.curated { background: var(--curated); }
+  .swatch.refline-swatch { width: 14px; height: 0; border-top: 2px dashed var(--ref-line); }
+
+  /* basis distribution segmented bar */
+  .segbar {
+    display: flex;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    min-width: 0;
+  }
+  .seg span { padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg.measured { background: var(--measured); }
+  .seg.curated { background: var(--curated); }
+  .seg.excluded { background: var(--excluded); }
+  .seg.none { background: var(--none); }
+  .seg-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px 20px;
+    margin-top: 16px;
+  }
+  .seg-legend-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .seg-legend-item .swatch { align-self: center; }
+  .seg-legend-item b {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .seg-legend-item .desc { color: var(--ink-muted); font-size: 12px; }
+
+  /* proof pair */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+  .proof-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .proof-card.flagged { border-color: var(--danger-border); }
+  .proof-basis {
+    align-self: flex-start;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 5px;
+  }
+  .badge.measured { background: var(--measured-bg); color: var(--measured); }
+  .badge.curated { background: var(--curated-bg); color: var(--curated); }
+  .proof-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16.5px;
+    line-height: 1.3;
+    margin: 0;
+  }
+  .proof-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .proof-score {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .proof-score .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .proof-score .lbl { font-size: 12.5px; color: var(--ink-muted); }
+  .proof-reasons {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .proof-reasons li {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 7px 10px;
+    line-height: 1.45;
+  }
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 16px;
+  }
+  .callout .mark {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--danger);
+    flex: none;
+  }
+  .callout p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .callout strong { color: var(--danger); }
+
+  /* known limits */
+  .limits {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .limit {
+    background: var(--surface);
+    padding: 13px 18px;
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 14px;
+    align-items: baseline;
+  }
+  .limit .sev {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 0;
+  }
+  .limit .sev.watch { color: var(--curated); }
+  .limit .sev.design { color: var(--ink-faint); }
+  .limit .sev.defer { color: var(--excluded); }
+  .limit p { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.55; }
+  .limit code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 22px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  footer .provenance-row { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  footer code { font-family: var(--font-mono); }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <span class="kicker">S-23 &middot; HF-1 role scarcity</span>
+    <h1>The same posting scores differently once you know its family.</h1>
+    <p class="dek">
+      roleScarcity used to fire on a hand-curated list of ten titles. This run proves the
+      replacement: free-text titles grouped into families, each family's real Greenhouse
+      posting duration measured against the dataset's own median, curated matching still
+      standing as the honest fallback where the sample is too thin to measure.
+    </p>
+    <div class="runmeta">
+      <span><b>run:</b> 2026-09&#8209;07 backfill:family-key + live scoring pass</span>
+      <span><b>sources:</b> Greenhouse=GitLab, Lever=gopuff</span>
+      <span><b>opportunities:</b> 995 (232 Greenhouse, 763 Lever)</span>
+      <span><b>config:</b> hard-to-fill-026-v2</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Measurement</div>
+        <h2>Median days open, by real Greenhouse family</h2>
+      </div>
+      <span class="tag tag-live">live</span>
+    </div>
+    <p class="section-note">
+      Every bar below is a real family's median <code style="font-family:var(--font-mono)">days_open</code>
+      across its actual Greenhouse observations &mdash; Lever is excluded from this measurement
+      entirely (see the callout under the proof pair). The dashed line marks 2&times; the global
+      Greenhouse median (33d &times; 2 = 66d): a family running past it is scarce as a matter of
+      record, not opinion.
+    </p>
+
+    <div class="chart-card">
+      <!-- bars sorted by median desc; scale max fixed at 80 so the 66d line and the
+           69d ml-ai bar both sit comfortably inside the track -->
+      <div class="bar-row">
+        <div class="bar-name">ml-ai<span class="bar-sub">n = 10 &middot; measured</span></div>
+        <div class="bar-track">
+          <div class="bar-fill measured" style="width: 86.25%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">69d</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">cloud&#8209;infra<span class="bar-sub">n = 4 &middot; curated fallback</span></div>
+        <div class="bar-track">
+          <div class="bar-fill curated" style="width: 58.75%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">47d</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">sales&#8209;bizdev<span class="bar-sub">n = 38 &middot; measured</span></div>
+        <div class="bar-track">
+          <div class="bar-fill measured" style="width: 42.5%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">34d</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">support&#8209;cs<span class="bar-sub">n = 35 &middot; measured</span></div>
+        <div class="bar-track">
+          <div class="bar-fill measured" style="width: 42.5%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">34d</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">engineering&#8209;swe<span class="bar-sub">n = 56 &middot; measured</span></div>
+        <div class="bar-track">
+          <div class="bar-fill measured" style="width: 23.75%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">19d</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">security<span class="bar-sub">n = 9 &middot; curated fallback</span></div>
+        <div class="bar-track">
+          <div class="bar-fill curated" style="width: 16.25%;"></div>
+          <div class="refline" style="left: 82.5%;"></div>
+        </div>
+        <div class="bar-value">13d</div>
+      </div>
+
+      <div class="chart-legend">
+        <div class="legend-item"><span class="swatch measured"></span> measured (n &ge; 10 real Greenhouse rows)</div>
+        <div class="legend-item"><span class="swatch curated"></span> below threshold &rarr; decision-026 curated fallback</div>
+        <div class="legend-item"><span class="swatch refline-swatch"></span> 2&times; global Greenhouse median (66d)</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Distribution</div>
+        <h2>What basis actually decided the score, across all 995 opportunities</h2>
+      </div>
+      <span class="tag tag-live">live</span>
+    </div>
+    <p class="section-note">
+      A single scoring pass over every real opportunity in the dataset, split by which
+      evidence produced its <code style="font-family:var(--font-mono)">roleScarcity</code> value. Most of the dataset never reaches a
+      basis at all &mdash; that's Lever's 763 rows, structurally excluded from measurement (see below),
+      plus a smaller slice with no curated match either.
+    </p>
+    <div class="segbar">
+      <div class="seg measured" style="flex: 139;"><span>measured &middot; 139</span></div>
+      <div class="seg curated" style="flex: 8;"></div>
+      <div class="seg none" style="flex: 87;"><span>87</span></div>
+      <div class="seg excluded" style="flex: 761;"><span>source&#8209;excluded &middot; 761</span></div>
+    </div>
+    <div class="seg-legend">
+      <div class="seg-legend-item"><span class="swatch measured"></span><b>139</b><span class="desc">measured &mdash; family cleared n&ge;10 on Greenhouse</span></div>
+      <div class="seg-legend-item"><span class="swatch curated"></span><b>8</b><span class="desc">curated &mdash; matched a decision-026 keyword</span></div>
+      <div class="seg-legend-item"><span class="swatch none"></span><b>87</b><span class="desc">none &mdash; in scope, no match either way</span></div>
+      <div class="seg-legend-item"><span class="swatch excluded"></span><b>761</b><span class="desc">source-excluded &mdash; Lever's daysOpen isn't trusted for measurement (763 real Lever rows, minus 2 that matched a curated keyword and count above instead)</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Proof</div>
+        <h2>The same shape of posting, two different bases, two different scores</h2>
+      </div>
+      <span class="tag tag-live">live &middot; real Greenhouse rows</span>
+    </div>
+    <p class="section-note">
+      Not hand-picked to look clean &mdash; these are the actual rows a live scoring run returned
+      when asked for one measured example and one curated example.
+    </p>
+
+    <div class="pair">
+      <div class="proof-card flagged">
+        <div class="proof-basis"><span class="badge measured">measured</span></div>
+        <p class="proof-title">Senior Product Designer, AI</p>
+        <div class="proof-meta">
+          <span>family: ml&#8209;ai</span>
+          <span>days_open: 167</span>
+          <span>source: greenhouse</span>
+        </div>
+        <div class="proof-score"><span class="num">0.80</span><span class="lbl">hard-to-fill score</span></div>
+        <ul class="proof-reasons">
+          <li>role scarcity: measured (family 'ml-ai', median 69d vs global 33d)</li>
+          <li>open 167 days</li>
+        </ul>
+      </div>
+
+      <div class="proof-card">
+        <div class="proof-basis"><span class="badge curated">curated</span></div>
+        <p class="proof-title">Staff Corporate Security Engineer</p>
+        <div class="proof-meta">
+          <span>family: security</span>
+          <span>days_open: 9</span>
+          <span>source: greenhouse</span>
+        </div>
+        <div class="proof-score"><span class="num">0.66</span><span class="lbl">hard-to-fill score</span></div>
+        <ul class="proof-reasons">
+          <li>role scarcity: curated (matched decision-026 keyword)</li>
+          <li>open 9 days</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">&#9888;</span>
+      <p>
+        <strong>Named false positive, not swept under the rug:</strong> "Senior Product Designer, AI"
+        lands in <code style="font-family:var(--font-mono)">ml-ai</code> only via the broad bare-word "ai" token &mdash; it is a design
+        role, not an ML/AI engineering role. The mechanism is doing exactly what it was built to do
+        (family &rarr; measured median &rarr; graduated score); this is a real, visible limit of a broad
+        single-word keyword on a small sample, kept as-is rather than quietly tuned away. Validating
+        which basis actually predicts fill difficulty better is explicitly S-25's job, not this
+        story's.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Limits</div>
+        <h2>What this run does and doesn't prove</h2>
+      </div>
+      <span class="tag tag-excluded">honest, not tuned</span>
+    </div>
+    <div class="limits">
+      <div class="limit">
+        <span class="sev watch">fragile n</span>
+        <p><code>ml-ai</code> sits at exactly the observation threshold (n=10). A family median this small moves materially on one atypical row &mdash; see the Product Designer example above, which is itself part of that median.</p>
+      </div>
+      <div class="limit">
+        <span class="sev watch">one row away</span>
+        <p><code>security</code> is at n=9, one real Greenhouse posting from flipping out of curated fallback into measured. The threshold is doing visible work here, not just gatekeeping in theory.</p>
+      </div>
+      <div class="limit">
+        <span class="sev design">by design</span>
+        <p>Leadership/management titles (~33% of real Greenhouse rows) have no family of their own and land in <code>general-other</code>, which is itself excluded from ever being "measured" &mdash; a blended median across unrelated director-level titles would be worse than not measuring it at all.</p>
+      </div>
+      <div class="limit">
+        <span class="sev design">structural</span>
+        <p><code>retail-ops</code> (530 real Lever rows) can never be measured under the current exclusion rule &mdash; every one of its observations is Lever-sourced. It rides the decision-026 curated fallback indefinitely unless that changes.</p>
+      </div>
+      <div class="limit">
+        <span class="sev defer">deferred &rarr; S-24</span>
+        <p>Lever's real median <code>days_open</code> (1,169d vs Greenhouse's 33d, ~35&times;) is almost certainly a field-semantics problem with Lever's raw <code>createdAt</code>, not evidence gopuff roles are 35&times; harder to fill. Excluded from every median computation until confirmed with a real client integration.</p>
+      </div>
+      <div class="limit">
+        <span class="sev defer">deferred &rarr; S-25</span>
+        <p>The Product Designer/AI false positive is left in the keyword list on purpose. Whether measured or curated basis actually predicts fill difficulty more accurately is a validation question, not a keyword-tuning one &mdash; that's S-25's job.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="provenance-row">
+      <span class="tag tag-live">live</span>
+      <span>Every number on this page comes from one scoring pass against the real, locally-ingested Greenhouse (GitLab) + Lever (gopuff) dataset. No seeded or stubbed data appears anywhere above.</span>
+    </div>
+    <div class="provenance-row">
+      <span class="tag tag-excluded">excluded</span>
+      <span>Lever rows participate in every other S-22 signal (repost detection, opportunity lists) &mdash; only median-days-open measurement excludes them, per 06_decisions/046.</span>
+    </div>
+    <div>Config <code>hard-to-fill-026-v2</code> &middot; threshold n&ge;10 &middot; decision <code>06_decisions/046-role-family-scarcity.md</code> &middot; S-23</div>
+  </footer>
+
+</div>
