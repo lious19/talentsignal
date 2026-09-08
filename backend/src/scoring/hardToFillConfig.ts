@@ -52,6 +52,31 @@ export const HARD_TO_FILL_CONFIG = {
   // reach on their own (0.2 + 0.2 = 0.4), so crossing it mechanically
   // requires a genuine roleScarcity match, not just an old repost.
   hardToFillThreshold: 0.5,
+
+  // S-23: title -> role-family keyword groups, checked before falling back
+  // to roleKeywords above. Each key is a stable family_key (see migration
+  // 018). Grounded in real title strings pulled from the live opportunities
+  // table (05_presentations/S-23-exploration.md), not invented abstractly.
+  // data-analytics and cloud-infra stay narrow on purpose: real Greenhouse
+  // coverage is 3 and 6 rows respectively, and widening the keywords to
+  // clear the observation threshold would mean sweeping in unrelated
+  // management/director titles just to manufacture "measured" status —
+  // the exact fabricated-metric failure mode this story exists to avoid.
+  // Declaration order is a tie-breaker only within the same specificity
+  // tier (see classifyFamily in hardToFillScore.ts): a multi-word keyword
+  // in ANY family always wins over a single-word keyword in another, so
+  // e.g. ml-ai's bare "ai" token can never preempt data-analytics' "data
+  // engineer" phrase, regardless of which family is listed first here.
+  roleFamilies: {
+    "engineering-swe": ["software engineer", "backend engineer", "frontend engineer", "full stack", "fullstack"],
+    "ml-ai": ["ai engineer", "ai architect", "machine learning", "ml engineer", "artificial intelligence", "ai"],
+    "data-analytics": ["data analyst", "data scientist", "data engineer", "data science"],
+    "security": ["security", "cybersecurity"],
+    "cloud-infra": ["cloud architect", "cloud engineer", "infrastructure", "site reliability", "devops"],
+    "support-cs": ["support engineer", "customer success", "help desk", "desktop support", "solutions architect"],
+    "sales-bizdev": ["account executive", "business development", "sales"],
+    "retail-ops": ["store associate", "key holder", "store manager", "operations associate", "forklift", "warehouse"],
+  },
 };
 
 // 0.6 + 0.2 + 0.2 = 1.0 — the score is always in [0, 1] by construction, no

@@ -21,14 +21,56 @@ function round3(n: number): number {
 
 type RawFactor = HardToFillFactor;
 
-// Case-insensitive substring match — "Staff AI Architect (Remote)" matches
-// "ai architect" the same way a title's exact wording elsewhere doesn't
-// affect confidenceScore's daysOpen ratio. Punctuation-sensitive by design
-// (an accepted heuristic-first tradeoff, see 06_decisions/026): "Sr.
-// Data-Analyst" will NOT match "data analyst".
+// Lowercases and collapses every run of non-alphanumeric characters (including
+// punctuation like ".", "-", "/") down to a single space, so "Sr. Data-Analyst"
+// and "Data/Analyst" both normalize to the same token stream as "Data Analyst".
+// Padded with a leading/trailing space so a keyword search can require word
+// boundaries via simple substring matching against " keyword " rather than a
+// regex per keyword.
+function normalizeForMatch(text: string): string {
+  return ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+}
+
+// Word-boundary substring match — fixes the punctuation-sensitivity gap
+// decision 026 flagged ("Sr. Data-Analyst" now matches "data analyst") while
+// keeping the original phrase-based matching semantics: multi-word keywords
+// still require the whole phrase, in order, as a run of tokens.
+function matchesAnyKeyword(title: string, keywords: string[]): boolean {
+  const normalized = normalizeForMatch(title);
+  return keywords.some((keyword) => normalized.includes(` ${normalizeForMatch(keyword).trim()} `));
+}
+
 function matchesScarceRole(title: string): boolean {
-  const normalized = title.toLowerCase();
-  return HARD_TO_FILL_CONFIG.roleKeywords.some((keyword) => normalized.includes(keyword));
+  return matchesAnyKeyword(title, HARD_TO_FILL_CONFIG.roleKeywords);
+}
+
+// S-23: classifies a free-text title into a role family for measured
+// roleScarcity (see familyScarcity.ts, Step 3). Falls back to
+// "general-other" when nothing matches — this is the expected outcome for a
+// real, large slice of the dataset (e.g. leadership/management titles, see
+// 06_decisions/046's "known gaps" section), not an error case.
+//
+// Precedence rule: a multi-word (specific) keyword match always wins over a
+// single-word (broad) keyword match, regardless of family order — checked in
+// two passes below. Only when nothing specific matches anywhere does a broad
+// token (roleFamilies' single-word entries, e.g. ml-ai's "ai", security's
+// "security") get to decide, in roleFamilies' declaration order. This
+// matters concretely: ml-ai's bare "ai" token would otherwise preempt
+// data-analytics' "data engineer" on a title like "AI Data Engineer" simply
+// because ml-ai is declared first — the two-pass split fixes that instead of
+// leaving it to accidental object order. Pinned by
+// classifyFamily.test.ts's precedence cases.
+export function classifyFamily(title: string): string {
+  const entries = Object.entries(HARD_TO_FILL_CONFIG.roleFamilies);
+  const isSpecific = (keyword: string) => keyword.trim().includes(" ");
+
+  for (const [familyKey, keywords] of entries) {
+    if (matchesAnyKeyword(title, keywords.filter(isSpecific))) return familyKey;
+  }
+  for (const [familyKey, keywords] of entries) {
+    if (matchesAnyKeyword(title, keywords.filter((k) => !isSpecific(k)))) return familyKey;
+  }
+  return "general-other";
 }
 
 // The one place the arithmetic happens, in full float precision — no

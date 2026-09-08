@@ -157,10 +157,10 @@ describe("hardToFillScore", () => {
     expect(roleScarcity.value).toBe(1);
   });
 
-  it("does not match across punctuation (documented substring-matching limitation)", () => {
+  it("matches across punctuation now that keyword matching is word-boundary based (S-23 fix)", () => {
     const { factors } = hardToFillScore({ ...BASE_SIGNAL, title: "Sr. Data-Analyst" });
 
     const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
-    expect(roleScarcity.value).toBe(0);
+    expect(roleScarcity.value).toBe(1);
   });
 });
