@@ -12,7 +12,8 @@
     "seed:analytics-demo": "tsx src/db/seedAnalyticsDemo.ts",
     "seed:demo": "tsx src/db/seedDemo.ts",
     "load-test": "tsx scripts/load-test/run.ts",
-    "ingest:once": "tsx scripts/ingest-once.ts"
+    "ingest:once": "tsx scripts/ingest-once.ts",
+    "backfill:family-key": "tsx scripts/backfillFamilyKey.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
