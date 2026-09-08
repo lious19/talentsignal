@@ -6,6 +6,11 @@ interface ScoreFactor {
   weight: number;
   value: number;
   contribution: number;
+  // S-23: only ever present on hardToFillFactors' roleScarcity row -- names
+  // whether its value came from real measurement or the decision-026
+  // curated list, so the structured breakdown never hides which evidence
+  // drove the score (confidence's factors never set this).
+  basis?: string;
 }
 
 interface Opportunity {
@@ -150,6 +155,7 @@ export function OpportunitiesList() {
                   {opportunity.hardToFillFactors.map((f) => (
                     <li key={f.factor}>
                       {f.factor}: weight {f.weight}, value {f.value}, contributes {f.contribution}
+                      {f.basis && f.basis !== "n/a" ? `, basis: ${f.basis}` : ""}
                     </li>
                   ))}
                 </ul>

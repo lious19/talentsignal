@@ -215,4 +215,45 @@ describe("OpportunitiesList", () => {
     expect(item).toHaveTextContent("Why hard to fill (weights hard-to-fill-026-v1)");
     expect(item).toHaveTextContent("roleScarcity: weight 0.6, value 1, contributes 0.6");
   });
+
+  it("shows the roleScarcity basis (measured/curated) in the structured breakdown when present (S-23)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const measuredOpportunity = {
+      ...HARD_TO_FILL_OPPORTUNITY,
+      id: "opp-measured",
+      hardToFillVersion: "hard-to-fill-026-v2",
+      hardToFillFactors: [
+        {
+          factor: "roleScarcity",
+          weight: 0.6,
+          value: 1,
+          contribution: 0.6,
+          basis: "measured",
+          familyKey: "ml-ai",
+          familyMedianDaysOpen: 69,
+          globalMedianDaysOpen: 33,
+        },
+        { factor: "daysOpen", weight: 0.2, value: 1, contribution: 0.2, basis: "n/a" },
+        { factor: "repostedRole", weight: 0.2, value: 1, contribution: 0.2, basis: "n/a" },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [measuredOpportunity] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Insight Analytics")).toBeInTheDocument());
+    const item = screen.getByText("Insight Analytics").closest("li");
+    // The structured breakdown never hides which evidence drove the score:
+    // roleScarcity says "measured", the other two factors (basis "n/a") say nothing extra.
+    expect(item).toHaveTextContent("roleScarcity: weight 0.6, value 1, contributes 0.6, basis: measured");
+    expect(item).toHaveTextContent("daysOpen: weight 0.2, value 1, contributes 0.2");
+    expect(item).not.toHaveTextContent("daysOpen: weight 0.2, value 1, contributes 0.2, basis");
+  });
 });
