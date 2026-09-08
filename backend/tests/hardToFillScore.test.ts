@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hardToFillScore } from "../src/scoring/hardToFillScore";
 import type { MarketSignal } from "../src/adapters/marketSignalProvider";
+import type { FamilyScarcityLookup } from "../src/scoring/familyScarcity";
 
 const BASE_SIGNAL: MarketSignal = {
   source: "mock-job-board",
@@ -29,7 +30,7 @@ describe("hardToFillScore", () => {
     });
 
     expect(score).toBe(1);
-    expect(reasons).toContain("in-demand role type");
+    expect(reasons).toContain("role scarcity: curated (matched decision-026 keyword)");
   });
 
   it("matches role keywords case-insensitively", () => {
@@ -162,5 +163,108 @@ describe("hardToFillScore", () => {
 
     const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
     expect(roleScarcity.value).toBe(1);
+  });
+
+  describe("S-23: measured roleScarcity", () => {
+    // SYNTHETIC FIXTURE, not live data -- see 05_presentations/S-23-exploration.md
+    // for the real-data proof. This fixture exists purely to prove the
+    // MECHANISM works in isolation: two families, both with n>=10 real
+    // observations, sitting at different multiples of the global median,
+    // must produce different roleScarcity values and different total scores
+    // regardless of what today's live dataset happens to contain.
+    const SYNTHETIC_FAMILY_SCARCITY: FamilyScarcityLookup = {
+      globalMedianDaysOpen: 30,
+      byFamily: {
+        "ml-ai": { count: 14, medianDaysOpen: 60 }, // exactly 2x global -> saturates at 1.0
+        "support-cs": { count: 12, medianDaysOpen: 15 }, // 0.5x global -> 0.25
+      },
+    };
+
+    it("PROVES criterion 1 mechanically: a Staff ML posting and a Help Desk posting, both from measured families with n>=10, score differently", () => {
+      const staffMl = hardToFillScore(
+        { ...BASE_SIGNAL, source: "greenhouse", title: "Staff ML Engineer", daysOpen: 60 },
+        SYNTHETIC_FAMILY_SCARCITY,
+      );
+      const helpDesk = hardToFillScore(
+        { ...BASE_SIGNAL, source: "greenhouse", title: "Help Desk Analyst", daysOpen: 15 },
+        SYNTHETIC_FAMILY_SCARCITY,
+      );
+
+      const mlFactor = staffMl.factors.find((f) => f.factor === "roleScarcity")!;
+      const helpDeskFactor = helpDesk.factors.find((f) => f.factor === "roleScarcity")!;
+
+      expect(mlFactor.basis).toBe("measured");
+      expect(helpDeskFactor.basis).toBe("measured");
+      expect(mlFactor.value).toBe(1);
+      expect(helpDeskFactor.value).toBe(0.25);
+      expect(mlFactor.value).not.toBe(helpDeskFactor.value);
+      expect(staffMl.score).not.toBe(helpDesk.score);
+
+      expect(staffMl.reasons).toContain("role scarcity: measured (family 'ml-ai', median 60d vs global 30d)");
+      expect(helpDesk.reasons).toContain("role scarcity: measured (family 'support-cs', median 15d vs global 30d)");
+    });
+
+    it("falls back to curated when the family has fewer than the observation threshold, and says so (criterion 2)", () => {
+      const thin: FamilyScarcityLookup = {
+        globalMedianDaysOpen: 30,
+        byFamily: { "cloud-infra": { count: 4, medianDaysOpen: 90 } }, // below familyObservationThreshold (10)
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, source: "greenhouse", title: "Cloud Architect", daysOpen: 90 },
+        thin,
+      );
+
+      const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
+      expect(roleScarcity.basis).toBe("curated"); // "cloud architect" is still on the decision-026 list
+      expect(roleScarcity.value).toBe(1);
+      expect(reasons).toContain("role scarcity: curated (matched decision-026 keyword)");
+    });
+
+    it("never uses the measured basis for a Lever-sourced signal, even when its family clears the threshold (source exclusion, 06_decisions/046)", () => {
+      const wouldQualifyIfGreenhouse: FamilyScarcityLookup = {
+        globalMedianDaysOpen: 30,
+        byFamily: { "ml-ai": { count: 14, medianDaysOpen: 60 } },
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, source: "lever", title: "AI Product Manager", daysOpen: 60 },
+        wouldQualifyIfGreenhouse,
+      );
+
+      const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
+      // "AI Product Manager" classifies as ml-ai (via the broad "ai" token)
+      // but isn't itself on the decision-026 curated list, so with measured
+      // basis excluded, nothing fires -- basis "none", silent reason, same
+      // convention as any other zero-contribution roleScarcity.
+      expect(roleScarcity.basis).toBe("none");
+      expect(roleScarcity.value).toBe(0);
+      expect(reasons.some((r) => r.startsWith("role scarcity:"))).toBe(false);
+    });
+
+    it("still applies the curated fallback to a Lever-sourced signal that matches a decision-026 keyword, even though measured is excluded", () => {
+      const familyScarcity: FamilyScarcityLookup = {
+        globalMedianDaysOpen: 30,
+        byFamily: { "data-analytics": { count: 20, medianDaysOpen: 60 } }, // hypothetically eligible, but source excludes it anyway
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, source: "lever", title: "Senior Data Analyst", daysOpen: 60 },
+        familyScarcity,
+      );
+
+      const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
+      expect(roleScarcity.basis).toBe("curated");
+      expect(roleScarcity.value).toBe(1);
+      expect(reasons).toContain("role scarcity: curated (matched decision-026 keyword)");
+    });
+
+    it("omitting familyScarcity entirely reproduces the exact pre-S-23 curated-only behavior", () => {
+      const withoutLookup = hardToFillScore({ ...BASE_SIGNAL, source: "greenhouse", title: "AI Engineer", daysOpen: 60 });
+      const roleScarcity = withoutLookup.factors.find((f) => f.factor === "roleScarcity")!;
+
+      expect(roleScarcity.basis).toBe("curated");
+      expect(roleScarcity.value).toBe(1);
+    });
   });
 });

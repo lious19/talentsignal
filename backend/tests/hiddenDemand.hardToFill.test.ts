@@ -49,9 +49,9 @@ describe("HF-2: hard-to-fill score on opportunities", () => {
     expect(opp.hardToFill).toBe(true);
     expect(opp.hardToFillScore).toBeGreaterThanOrEqual(0.5);
     // The flag never travels without its "why": reasons are non-empty and name
-    // the role-type match that drove it.
+    // the role-type match that drove it, including which basis (S-23).
     expect(opp.hardToFillReasons).toEqual(
-      expect.arrayContaining(["in-demand role type", "open 30 days", "reposted role"]),
+      expect.arrayContaining(["role scarcity: curated (matched decision-026 keyword)", "open 30 days", "reposted role"]),
     );
     expect(typeof opp.hardToFillVersion).toBe("string");
   });

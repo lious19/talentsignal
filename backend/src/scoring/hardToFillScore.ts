@@ -1,11 +1,26 @@
 import type { MarketSignal } from "../adapters/marketSignalProvider";
 import { HARD_TO_FILL_CONFIG } from "./hardToFillConfig";
+import type { FamilyScarcityLookup } from "./familyScarcity";
+
+// S-23: which evidence produced roleScarcity's value. "n/a" is stamped on
+// daysOpen/repostedRole, which have no basis concept of their own -- kept as
+// a required field (not optional) so every persisted factor has the same
+// shape, rather than some rows silently omitting it.
+export type HardToFillBasis = "measured" | "curated" | "none" | "n/a";
 
 export interface HardToFillFactor {
   factor: "roleScarcity" | "daysOpen" | "repostedRole";
   weight: number;
   value: number;
   contribution: number;
+  basis: HardToFillBasis;
+  // Only present on a roleScarcity factor whose basis is "measured" -- the
+  // actual family/median numbers behind the value, so a stored score is
+  // self-explaining without recomputing anything (no hidden inputs, per
+  // HF-1's trust scenario).
+  familyKey?: string;
+  familyMedianDaysOpen?: number;
+  globalMedianDaysOpen?: number;
 }
 
 export interface HardToFillResult {
@@ -73,32 +88,67 @@ export function classifyFamily(title: string): string {
   return "general-other";
 }
 
+// S-23: resolves roleScarcity's value + basis for one signal. Measured
+// requires BOTH the signal's own source to be on the allowlist (today, just
+// "greenhouse" -- see 06_decisions/046's Lever exclusion) AND its family to
+// have cleared familyObservationThreshold real Greenhouse observations.
+// Anything else falls back to the original decision-026 curated-keyword
+// check, unchanged from before this story.
+function resolveRoleScarcity(
+  signal: MarketSignal,
+  familyScarcity: FamilyScarcityLookup | undefined,
+): { value: number; basis: HardToFillBasis; familyKey?: string; familyMedianDaysOpen?: number; globalMedianDaysOpen?: number } {
+  const familyKey = classifyFamily(signal.title);
+  const family = familyScarcity?.byFamily[familyKey];
+  const measuredEligible =
+    familyScarcity !== undefined &&
+    HARD_TO_FILL_CONFIG.measuredEligibleSources.includes(signal.source) &&
+    family !== undefined &&
+    family.count >= HARD_TO_FILL_CONFIG.familyObservationThreshold;
+
+  if (measuredEligible) {
+    const { globalMedianDaysOpen } = familyScarcity;
+    const saturationPoint = HARD_TO_FILL_CONFIG.measuredScarcitySaturationMultiple * globalMedianDaysOpen;
+    const value = saturationPoint > 0 ? Math.min(1, family.medianDaysOpen / saturationPoint) : 0;
+    return { value, basis: "measured", familyKey, familyMedianDaysOpen: family.medianDaysOpen, globalMedianDaysOpen };
+  }
+
+  const isScarceRole = matchesScarceRole(signal.title);
+  return { value: isScarceRole ? 1 : 0, basis: isScarceRole ? "curated" : "none" };
+}
+
 // The one place the arithmetic happens, in full float precision — no
 // rounding yet. Same "round only at the boundary" convention
 // confidenceScore.ts established.
-function buildRawFactors(signal: MarketSignal): RawFactor[] {
+function buildRawFactors(signal: MarketSignal, familyScarcity: FamilyScarcityLookup | undefined): RawFactor[] {
   const { weights, daysOpenSaturationThreshold } = HARD_TO_FILL_CONFIG;
   const daysOpenRatio = Math.min(signal.daysOpen, daysOpenSaturationThreshold) / daysOpenSaturationThreshold;
-  const isScarceRole = matchesScarceRole(signal.title);
+  const roleScarcity = resolveRoleScarcity(signal, familyScarcity);
 
   return [
     {
       factor: "roleScarcity",
       weight: weights.roleScarcity,
-      value: isScarceRole ? 1 : 0,
-      contribution: isScarceRole ? weights.roleScarcity : 0,
+      value: roleScarcity.value,
+      contribution: weights.roleScarcity * roleScarcity.value,
+      basis: roleScarcity.basis,
+      familyKey: roleScarcity.familyKey,
+      familyMedianDaysOpen: roleScarcity.familyMedianDaysOpen,
+      globalMedianDaysOpen: roleScarcity.globalMedianDaysOpen,
     },
     {
       factor: "daysOpen",
       weight: weights.daysOpen,
       value: daysOpenRatio,
       contribution: weights.daysOpen * daysOpenRatio,
+      basis: "n/a",
     },
     {
       factor: "repostedRole",
       weight: weights.repostedRole,
       value: signal.isRepost ? 1 : 0,
       contribution: signal.isRepost ? weights.repostedRole : 0,
+      basis: "n/a",
     },
   ];
 }
@@ -112,16 +162,32 @@ function toDisplayFactors(raw: RawFactor[]): HardToFillFactor[] {
     weight: round3(f.weight),
     value: round3(f.value),
     contribution: round3(f.contribution),
+    basis: f.basis,
+    ...(f.familyKey !== undefined ? { familyKey: f.familyKey } : {}),
+    ...(f.familyMedianDaysOpen !== undefined ? { familyMedianDaysOpen: f.familyMedianDaysOpen } : {}),
+    ...(f.globalMedianDaysOpen !== undefined ? { globalMedianDaysOpen: f.globalMedianDaysOpen } : {}),
   }));
 }
 
 // Reason strings are derived from the same factors array, not recomputed
-// independently.
+// independently. S-23 (criterion 3): the roleScarcity reason always names
+// its basis when it has one -- "measured" or "curated" -- so a reader never
+// has to guess which evidence produced the score. When basis is "none" (no
+// curated match, or a signal ineligible for measured with no curated match
+// either -- including every Lever-sourced signal that isn't independently a
+// curated match), roleScarcity stays silent, same convention this factor and
+// repostedRole already used for a zero contribution before this story.
 function factorsToReasons(signal: MarketSignal, factors: HardToFillFactor[]): string[] {
   const reasons: string[] = [];
 
   const roleScarcity = factors.find((f) => f.factor === "roleScarcity");
-  if (roleScarcity && roleScarcity.contribution > 0) reasons.push("in-demand role type");
+  if (roleScarcity?.basis === "measured") {
+    reasons.push(
+      `role scarcity: measured (family '${roleScarcity.familyKey}', median ${roleScarcity.familyMedianDaysOpen}d vs global ${roleScarcity.globalMedianDaysOpen}d)`,
+    );
+  } else if (roleScarcity?.basis === "curated") {
+    reasons.push("role scarcity: curated (matched decision-026 keyword)");
+  }
 
   reasons.push(`open ${signal.daysOpen} day${signal.daysOpen === 1 ? "" : "s"}`);
 
@@ -139,9 +205,17 @@ function factorsToReasons(signal: MarketSignal, factors: HardToFillFactor[]): st
  * than a fourth factor on scoreSignal() — the "one place per score"
  * discipline from S-07. No factor here is invented; every weight traces
  * back to the PROPOSED config, pending Ali.
+ *
+ * S-23: `familyScarcity` is optional and, when passed, is a lookup table
+ * computed ONCE per scoring run (computeFamilyScarcity in familyScarcity.ts)
+ * and reused across every signal in that run -- this function stays
+ * synchronous and DB-free, same as before. Omitting it (every existing
+ * caller and unit test that predates this story) reproduces the exact
+ * pre-S-23 curated-only behavior: roleScarcity can never be "measured"
+ * without a family_scarcity lookup to measure against.
  */
-export function hardToFillScore(signal: MarketSignal): HardToFillResult {
-  const raw = buildRawFactors(signal);
+export function hardToFillScore(signal: MarketSignal, familyScarcity?: FamilyScarcityLookup): HardToFillResult {
+  const raw = buildRawFactors(signal, familyScarcity);
   const score = round3(raw.reduce((sum, f) => sum + f.contribution, 0));
   const factors = toDisplayFactors(raw);
   const reasons = factorsToReasons(signal, factors);

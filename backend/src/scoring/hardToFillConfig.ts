@@ -11,7 +11,12 @@ export const HARD_TO_FILL_CONFIG = {
   // a second, independent score. Every stored result stamps this value so
   // an old score stays traceable to the config that produced it even after
   // this string changes.
-  version: "hard-to-fill-026-v1",
+  // S-23 bumps this to v2: weights and the [0,1] score range are unchanged,
+  // but roleScarcity's VALUE now means something new (a measured ratio for
+  // eligible Greenhouse families, not just a curated-list boolean), so every
+  // stored score needs to be traceable to which meaning produced it. See
+  // 06_decisions/046.
+  version: "hard-to-fill-026-v2",
 
   // Case-insensitive substring match against MarketSignal.title. No
   // canonical role-type vocabulary exists in this schema (the same gap
@@ -77,6 +82,35 @@ export const HARD_TO_FILL_CONFIG = {
     "sales-bizdev": ["account executive", "business development", "sales"],
     "retail-ops": ["store associate", "key holder", "store manager", "operations associate", "forklift", "warehouse"],
   },
+
+  // A family needs at least this many Greenhouse observations before its
+  // median daysOpen counts as "measured" evidence rather than opinion.
+  // Lever is excluded from this count entirely (and from every median
+  // computation) — see 06_decisions/046: Lever's real median daysOpen is
+  // ~35x Greenhouse's, almost certainly because its raw `createdAt` field
+  // doesn't mean what this scorer assumes "opened" means, not because
+  // gopuff roles are genuinely that much harder to fill. Publishing a
+  // "measured" claim built on that number would be exactly the invented
+  // metric this story replaces roleScarcity's old opinion-based list to
+  // avoid. Flagged for revisit once Lever's field semantics are confirmed
+  // with a real client integration, not silently worked around.
+  familyObservationThreshold: 10,
+
+  // Allowlist, not a blocklist: a signal is only eligible for the measured
+  // basis when its own source is in this list, regardless of how many
+  // Greenhouse observations its family has elsewhere. This is deliberately
+  // an allowlist so a future third source (or "seed-job-board", or a test
+  // fixture's arbitrary source string) defaults to ineligible until someone
+  // explicitly vets its daysOpen semantics the way decision 046 vetted (and
+  // rejected) Lever's -- never silently "measured" just because it wasn't
+  // named "lever".
+  measuredEligibleSources: ["greenhouse"],
+
+  // roleScarcity's measured value: min(1, familyMedianDaysOpen / (2 *
+  // globalMedianDaysOpen)) -- saturates at 1.0 exactly when a family's
+  // median sits at 2x the global median, matching the story's own "routinely
+  // sit twice as long as the median" framing.
+  measuredScarcitySaturationMultiple: 2,
 };
 
 // 0.6 + 0.2 + 0.2 = 1.0 — the score is always in [0, 1] by construction, no
