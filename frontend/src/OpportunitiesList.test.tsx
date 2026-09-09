@@ -357,4 +357,91 @@ describe("OpportunitiesList", () => {
       expect(within(item).getByText("No raw ingested payload found for this opportunity yet.")).toBeInTheDocument(),
     );
   });
+
+  it("shows the capacity signal rationale verbatim, even when the opportunity isn't flagged hard-to-fill (S-24)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    // NOT hardToFill: true -- a real capacity match (measured, but a small
+    // weight on its own) doesn't necessarily cross the hard-to-fill badge
+    // threshold, and the rationale still has to name it per acceptance
+    // criterion 1. The exact sentence is what hardToFillScore.ts's
+    // factorsToReasons() actually builds -- reused verbatim, not reformatted.
+    const opportunityWithCapacitySignal = {
+      ...OPPORTUNITY,
+      id: "opp-capacity",
+      company: "GitLab",
+      hardToFillReasons: ["capacity: H-1B LCA matched (GITLAB INC.), high-confidence, dated 2026-06-01"],
+      hardToFillFactors: [
+        {
+          factor: "capacitySignal",
+          weight: 0.2,
+          value: 1,
+          contribution: 0.2,
+          basis: "measured",
+          capacitySource: "h1b-lca",
+          matchedEmployerName: "GITLAB INC.",
+          eventDate: "2026-06-01",
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [opportunityWithCapacitySignal] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("GitLab")).toBeInTheDocument());
+    const item = screen.getByText("GitLab").closest("li") as HTMLElement;
+    // Not the hard-to-fill badge (opportunity isn't flagged) -- the capacity
+    // rationale line inside "How this was scored" instead.
+    expect(item).not.toHaveTextContent("hard to fill:");
+    const howScored = within(item).getByLabelText("how this was scored");
+    expect(howScored).toHaveTextContent(
+      "capacity: H-1B LCA matched (GITLAB INC.), high-confidence, dated 2026-06-01",
+    );
+  });
+
+  it("shows a recency-excluded capacity match's rationale too -- a real match zeroed by the recency gate stays visible", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const opportunityWithStaleCapacitySignal = {
+      ...OPPORTUNITY,
+      id: "opp-capacity-stale",
+      company: "GitLab",
+      hardToFillReasons: [
+        "capacity: federal award matched (GITLAB INC.), high-confidence — excluded, dated 2016-07-20 is older than the 24-month recency window",
+      ],
+      hardToFillFactors: [
+        {
+          factor: "capacitySignal",
+          weight: 0.2,
+          value: 0,
+          contribution: 0,
+          basis: "measured",
+          capacitySource: "federal-award",
+          matchedEmployerName: "GITLAB INC.",
+          eventDate: "2016-07-20",
+          recencyExcluded: true,
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [opportunityWithStaleCapacitySignal] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("GitLab")).toBeInTheDocument());
+    const item = screen.getByText("GitLab").closest("li") as HTMLElement;
+    const howScored = within(item).getByLabelText("how this was scored");
+    expect(howScored).toHaveTextContent("excluded, dated 2016-07-20 is older than the 24-month recency window");
+  });
 });

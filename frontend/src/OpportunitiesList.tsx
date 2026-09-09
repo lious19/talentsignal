@@ -229,6 +229,17 @@ export function OpportunitiesList() {
             {opportunity.hardToFill && opportunity.hardToFillReasons && opportunity.hardToFillReasons.length > 0 && (
               <p>🔴 {opportunity.hardToFillReasons.join(", ")}</p>
             )}
+            {/* S-24 (capacity signals): shown independent of the hardToFill
+                badge above -- a real capacity match (e.g. a low-confidence
+                one, or one zeroed by the recency gate) still counts as real
+                evidence the rationale must name (acceptance criterion 1),
+                even on an opportunity that doesn't cross the hard-to-fill
+                threshold on its own. The exact backend-built sentence is
+                reused verbatim, not reformatted here -- same "one place
+                writes the wording" discipline as every other reason string. */}
+            {opportunity.hardToFillReasons
+              ?.filter((r) => r.startsWith("capacity:"))
+              .map((r) => <p key={r}>{r}</p>)}
             <RawPayloadExpander opportunityId={opportunity.id} />
           </div>
           {/* Native <details>/<summary> gives expand/collapse via built-in
