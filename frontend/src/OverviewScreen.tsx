@@ -115,48 +115,88 @@ function tileValue(state: CountState): string {
   return state.status === "ok" ? String(state.count) : state.status === "loading" ? "…" : "—";
 }
 
+// S-24 (Fix 2): secondary tiles are visually de-emphasized (smaller type,
+// muted icon) on purpose -- Ali's "too many numbers, not organized"
+// complaint was about every tile competing equally for attention. They
+// never carry a progress bar: none of clients/candidates/requisitions has a
+// natural "out of what" denominator, so fabricating one would be exactly the
+// invented-metric failure mode this pass exists to avoid.
 function StatTile({
   label,
   state,
   icon: Icon,
   accentVar,
   realBadge,
-  progress,
+  secondary,
 }: {
   label: string;
   state: CountState;
   icon: LucideIcon;
   accentVar: "--accent" | "--accent-2";
   realBadge: string;
-  // Optional, and only ever passed when both numbers come from data already
-  // fetched on this screen -- no tile fabricates a denominator it doesn't
-  // have (e.g. Clients/Candidates/Opportunities have no natural "out of
-  // what" and stay bar-less).
-  progress?: { current: number; total: number };
+  secondary?: boolean;
 }) {
-  const showProgress = state.status === "ok" && progress && progress.total > 0;
   return (
-    <div className="stat-tile" role="group" aria-label={label}>
-      <div className="stat-tile-icon" style={{ background: `var(${accentVar})` }}>
-        <Icon size={18} aria-hidden="true" />
+    <div className={`stat-tile${secondary ? " stat-tile-secondary" : ""}`} role="group" aria-label={label}>
+      <div
+        className="stat-tile-icon"
+        style={{ background: secondary ? "var(--mute)" : `var(${accentVar})` }}
+      >
+        <Icon size={secondary ? 15 : 18} aria-hidden="true" />
       </div>
       <span className="stat-tile-value">{tileValue(state)}</span>
       <span className="stat-tile-label">{label}</span>
       {state.status === "ok" && <span className="stat-tile-real-badge">{realBadge}</span>}
       {state.status === "error" && <span className="stat-tile-error">Could not load</span>}
-      {showProgress && (
-        <div className="stat-tile-progress">
-          <div className="stat-tile-progress-track">
+    </div>
+  );
+}
+
+const BASIS_TIERS = [
+  { key: "measuredBasis" as const, label: "Measured", colorVar: "--success" },
+  { key: "curatedBasis" as const, label: "Curated", colorVar: "--accent" },
+  { key: "noBasis" as const, label: "No basis", colorVar: "--border" },
+];
+
+// S-24 (Fix 3 groundwork / Fix 2): the measured/curated/no-basis split is
+// 06_decisions/046's real roleScarcity evidence tiers (measured = an
+// eligible Greenhouse family's actual median days-open; curated = the
+// decision-026 keyword fallback; no basis = neither, e.g. pre-S-23 rows) --
+// not a new taxonomy invented for this screen. Every number is
+// summary.total's own partition, so the three segments always add up to the
+// hero tile's own denominator.
+function BasisBar({ summary }: { summary: import("./hooks/useOpportunitiesSummary").OpportunitySummary }) {
+  if (summary.total === 0) return null;
+  return (
+    <div className="stat-tile-stacked">
+      <div
+        className="stat-tile-stacked-track"
+        role="img"
+        aria-label={`Scoring basis: ${summary.measuredBasis} measured, ${summary.curatedBasis} curated, ${summary.noBasis} no basis, out of ${summary.total} total`}
+      >
+        {BASIS_TIERS.map((tier) => {
+          const count = summary[tier.key];
+          if (count === 0) return null;
+          return (
             <div
-              className="stat-tile-progress-fill"
-              style={{ width: `${Math.min(100, (progress.current / progress.total) * 100)}%` }}
+              key={tier.key}
+              className="stat-tile-stacked-seg"
+              style={{ width: `${(count / summary.total) * 100}%`, background: `var(${tier.colorVar})` }}
             />
-          </div>
-          <span className="stat-tile-progress-label">
-            {progress.current} of {progress.total} opportunities
+          );
+        })}
+      </div>
+      <div className="stat-tile-stacked-legend">
+        {BASIS_TIERS.map((tier) => (
+          <span className="stat-tile-stacked-legend-item" key={tier.key}>
+            <span
+              className="stat-tile-stacked-legend-swatch"
+              style={{ background: `var(${tier.colorVar})` }}
+            />
+            {tier.label} {summary[tier.key]}
           </span>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
@@ -272,6 +312,15 @@ export function OverviewScreen() {
       : summaryState.status === "loading" || summaryState.status === "unauthenticated"
         ? summaryState
         : { status: "error" };
+  // Only /summary exposes this (no route reads raw_requisitions today), so
+  // it's gated the same as the other opportunity-derived tiles -- a
+  // recruiter sees Clients/Candidates but not this one.
+  const requisitionsIngestedCount: CountState =
+    summaryState.status === "ok"
+      ? { status: "ok", count: summaryState.summary.totalRequisitionsIngested }
+      : summaryState.status === "loading" || summaryState.status === "unauthenticated"
+        ? summaryState
+        : { status: "error" };
 
   // The donut/ingestion cards below still need the full per-opportunity
   // array (confidence tier, per-source, per-row diff timestamp -- none of
@@ -325,37 +374,56 @@ export function OverviewScreen() {
         </button>
       </div>
 
-      <div className="stat-grid">
-        <StatTile label="Total Clients" state={clients} icon={Building2} accentVar="--accent" realBadge="in database" />
+      {/* S-24 (Fix 2): one dominant hero KPI instead of 4 equal-weight tiles
+          (Ali: "too many numbers, not organized"). Hard-to-fill count is the
+          number this whole app exists to surface, so it's the only one that
+          gets full-width treatment and a basis breakdown underneath. */}
+      {canSeeOpportunities && (
+        <div className="stat-hero">
+          <div className="stat-tile stat-tile-hero" role="group" aria-label="Hard-to-fill opportunities">
+            <div className="stat-tile-icon" style={{ background: "var(--accent-2)" }}>
+              <Flame size={20} aria-hidden="true" />
+            </div>
+            <span className="stat-tile-hero-value">
+              {hardToFillCount.status === "ok" && opportunitiesCount.status === "ok"
+                ? `${hardToFillCount.count} of ${opportunitiesCount.count}`
+                : tileValue(hardToFillCount)}
+            </span>
+            <span className="stat-tile-label">Hard-to-fill opportunities</span>
+            {(hardToFillCount.status === "error" || opportunitiesCount.status === "error") && (
+              <span className="stat-tile-error">Could not load</span>
+            )}
+            {summaryState.status === "ok" && <BasisBar summary={summaryState.summary} />}
+          </div>
+        </div>
+      )}
+
+      <div className="stat-grid stat-grid-secondary">
+        <StatTile
+          label="Total Clients"
+          state={clients}
+          icon={Building2}
+          accentVar="--accent"
+          realBadge="in database"
+          secondary
+        />
         <StatTile
           label="Total Candidates"
           state={candidates}
           icon={Users}
           accentVar="--accent-2"
           realBadge="in database"
+          secondary
         />
         {canSeeOpportunities && (
-          <>
-            <StatTile
-              label="Total Opportunities"
-              state={opportunitiesCount}
-              icon={Briefcase}
-              accentVar="--accent"
-              realBadge="active"
-            />
-            <StatTile
-              label="Hard-to-Fill Count"
-              state={hardToFillCount}
-              icon={Flame}
-              accentVar="--accent-2"
-              realBadge="flagged"
-              progress={
-                hardToFillCount.status === "ok" && opportunitiesCount.status === "ok"
-                  ? { current: hardToFillCount.count, total: opportunitiesCount.count }
-                  : undefined
-              }
-            />
-          </>
+          <StatTile
+            label="Requisitions Ingested"
+            state={requisitionsIngestedCount}
+            icon={Briefcase}
+            accentVar="--accent"
+            realBadge="raw"
+            secondary
+          />
         )}
       </div>
 
