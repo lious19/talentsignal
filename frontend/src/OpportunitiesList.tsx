@@ -42,8 +42,18 @@ type OpportunitiesState =
   | { status: "unauthenticated" }
   | { status: "error" };
 
+// S-24 (Fix 1): the row count Ali watched stall in front of instructors.
+// Rendering all ~1000 rows (each with two <details> blocks) into the DOM at
+// once is the actual cost -- the fetch itself is one request either way.
+// Chosen over pulling in react-window: this is a smaller diff for the same
+// result (only the first PAGE_SIZE rows exist in the DOM at a time), and
+// "Load more" keeps the existing plain <ul>/<li> markup every current test
+// already asserts against.
+const PAGE_SIZE = 50;
+
 export function OpportunitiesList() {
   const [state, setState] = useState<OpportunitiesState>({ status: "loading" });
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,9 +104,12 @@ export function OpportunitiesList() {
   // The API already returns opportunities ranked by confidence descending
   // (S-04), so rank is just this array's position — no separate field to
   // keep in sync with the sort order the backend already applied.
+  const visibleOpportunities = state.opportunities.slice(0, visibleCount);
+
   return (
+    <>
     <ul aria-label="opportunities">
-      {state.opportunities.map((opportunity, index) => (
+      {visibleOpportunities.map((opportunity, index) => (
         <li key={opportunity.id}>
           <span>#{index + 1}</span>{" "}
           <strong>{opportunity.company}</strong>{" "}
@@ -164,5 +177,11 @@ export function OpportunitiesList() {
         </li>
       ))}
     </ul>
+    {visibleCount < state.opportunities.length && (
+      <button type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+        Load more ({visibleCount} of {state.opportunities.length})
+      </button>
+    )}
+    </>
   );
 }

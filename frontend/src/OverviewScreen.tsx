@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Building2, Users, Briefcase, Flame, Play, Clock, type LucideIcon } from "lucide-react";
 import { getStoredToken, getStoredRole, getStoredEmail } from "./auth";
+import { useOpportunitiesSummary } from "./hooks/useOpportunitiesSummary";
 
 interface Opportunity {
   id: string;
@@ -252,43 +253,60 @@ export function OverviewScreen() {
   const clients = useListCount("/api/clients", "clients", true);
   const candidates = useListCount("/api/candidates", "candidates", true);
   const opportunitiesState = useOpportunities(canSeeOpportunities);
+  // S-24 (Fix 1): tile counts come from the cheap pre-aggregated endpoint
+  // instead of the full opportunities array below, so they're no longer
+  // recomputed by filtering hundreds/thousands of rows on every render (the
+  // "Opportunities screen ... computes tile counts every render" complaint).
+  const summaryState = useOpportunitiesSummary(canSeeOpportunities);
 
   const opportunities = opportunitiesState.status === "ok" ? opportunitiesState.opportunities : [];
   const opportunitiesCount: CountState =
-    opportunitiesState.status === "ok"
-      ? { status: "ok", count: opportunities.length }
-      : opportunitiesState.status === "loading" || opportunitiesState.status === "unauthenticated"
-        ? opportunitiesState
+    summaryState.status === "ok"
+      ? { status: "ok", count: summaryState.summary.total }
+      : summaryState.status === "loading" || summaryState.status === "unauthenticated"
+        ? summaryState
         : { status: "error" };
   const hardToFillCount: CountState =
-    opportunitiesState.status === "ok"
-      ? { status: "ok", count: opportunities.filter((o) => (o.hardToFillScore ?? 0) > 0).length }
-      : opportunitiesState.status === "loading" || opportunitiesState.status === "unauthenticated"
-        ? opportunitiesState
+    summaryState.status === "ok"
+      ? { status: "ok", count: summaryState.summary.hardToFill }
+      : summaryState.status === "loading" || summaryState.status === "unauthenticated"
+        ? summaryState
         : { status: "error" };
 
-  const tiers: Tier[] = [
-    { label: "Strong", count: opportunities.filter((o) => o.confidenceScore >= 0.7).length, colorVar: "--success" },
-    {
-      label: "Good",
-      count: opportunities.filter((o) => o.confidenceScore >= 0.5 && o.confidenceScore < 0.7).length,
-      colorVar: "--accent",
-    },
-    {
-      label: "Review",
-      count: opportunities.filter((o) => o.confidenceScore >= 0.25 && o.confidenceScore < 0.5).length,
-      colorVar: "--warning",
-    },
-    { label: "Poor", count: opportunities.filter((o) => o.confidenceScore < 0.25).length, colorVar: "--danger" },
-  ];
+  // The donut/ingestion cards below still need the full per-opportunity
+  // array (confidence tier, per-source, per-row diff timestamp -- none of
+  // that lives in the /summary aggregate), but there's no reason to re-run
+  // these four .filter()/.map() passes on a render this array didn't
+  // change for (e.g. the theme toggle) -- memoized on the array reference.
+  const tiers: Tier[] = useMemo(
+    () => [
+      { label: "Strong", count: opportunities.filter((o) => o.confidenceScore >= 0.7).length, colorVar: "--success" },
+      {
+        label: "Good",
+        count: opportunities.filter((o) => o.confidenceScore >= 0.5 && o.confidenceScore < 0.7).length,
+        colorVar: "--accent",
+      },
+      {
+        label: "Review",
+        count: opportunities.filter((o) => o.confidenceScore >= 0.25 && o.confidenceScore < 0.5).length,
+        colorVar: "--warning",
+      },
+      { label: "Poor", count: opportunities.filter((o) => o.confidenceScore < 0.25).length, colorVar: "--danger" },
+    ],
+    [opportunities],
+  );
   const tiersTotal = tiers.reduce((sum, t) => sum + t.count, 0);
 
-  const sources = [...new Set(opportunities.map((o) => o.source))].sort();
-  const latestDiff = opportunities
-    .map((o) => o.diffComputedAt)
-    .filter((d): d is string => d !== null)
-    .sort()
-    .at(-1);
+  const sources = useMemo(() => [...new Set(opportunities.map((o) => o.source))].sort(), [opportunities]);
+  const latestDiff = useMemo(
+    () =>
+      opportunities
+        .map((o) => o.diffComputedAt)
+        .filter((d): d is string => d !== null)
+        .sort()
+        .at(-1),
+    [opportunities],
+  );
 
   return (
     <section aria-label="overview">

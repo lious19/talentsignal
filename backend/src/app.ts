@@ -8,6 +8,7 @@ import { authRouter } from "./routes/auth";
 import { adminRouter } from "./routes/admin";
 import { hiddenDemandRouter } from "./routes/hiddenDemand";
 import { opportunitiesRouter } from "./routes/opportunities";
+import { opportunitySummaryRouter } from "./routes/opportunitySummary";
 import { clientsRouter } from "./routes/clients";
 import { candidatesRouter } from "./routes/candidates";
 import { jobOpeningsRouter } from "./routes/jobOpenings";
@@ -54,6 +55,7 @@ export function createApp(
   app.use("/api", adminRouter(pool));
   app.use("/api", hiddenDemandRouter(pool, marketSignalProvider, options));
   app.use("/api", opportunitiesRouter(pool));
+  app.use("/api", opportunitySummaryRouter(pool));
   app.use("/api", clientsRouter(pool));
   app.use("/api", candidatesRouter(pool));
   app.use("/api", jobOpeningsRouter(pool));
