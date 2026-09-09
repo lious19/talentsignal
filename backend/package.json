@@ -13,19 +13,21 @@
     "seed:demo": "tsx src/db/seedDemo.ts",
     "load-test": "tsx scripts/load-test/run.ts",
     "ingest:once": "tsx scripts/ingest-once.ts",
+    "ingest:capacity-once": "tsx scripts/ingest-capacity-once.ts",
     "backfill:family-key": "tsx scripts/backfillFamilyKey.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.12.0",
-    "pino": "^9.3.2"
+    "pino": "^9.3.2",
+    "unzipper": "^0.12.5"
   },
   "devDependencies": {
-    "autocannon": "^7.15.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -33,6 +35,8 @@
     "@types/node": "^20.14.10",
     "@types/pg": "^8.11.6",
     "@types/supertest": "^6.0.2",
+    "@types/unzipper": "^0.10.11",
+    "autocannon": "^7.15.0",
     "supertest": "^7.0.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
