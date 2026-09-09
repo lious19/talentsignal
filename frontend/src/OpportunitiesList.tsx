@@ -278,7 +278,11 @@ export function OpportunitiesList() {
       ))}
     </ul>
     {visibleCount < state.opportunities.length && (
-      <button type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+      <button
+        type="button"
+        className="opportunities-load-more"
+        onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+      >
         Load more ({visibleCount} of {state.opportunities.length})
       </button>
     )}

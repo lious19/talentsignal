@@ -459,6 +459,33 @@ hr{ border:none; border-top:1px solid var(--border); margin:1.1rem 0; }
 .donut-legend-label{ color:var(--text); font-weight:600; }
 .donut-legend-count{ color:var(--mute); margin-left:auto; }
 
+/* ---- opportunities list (S-24 Fix 4: consistent 8/16/24px spacing,
+   muted secondary "how this was scored" / raw-payload blocks so they
+   support the row's headline numbers instead of competing with them) ---- */
+ul[aria-label="opportunities"]{ list-style:none; margin:0; padding:0; }
+ul[aria-label="opportunities"] > li{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:var(--space-4); margin-bottom:var(--space-4);
+  transition:box-shadow 200ms ease;
+}
+ul[aria-label="opportunities"] > li:hover{ box-shadow:var(--shadow-hover); }
+ul[aria-label="opportunities"] details{ margin-top:var(--space-2); }
+
+.how-scored{
+  margin-top:var(--space-3); padding:var(--space-3) var(--space-4);
+  background:var(--bg); border:1px solid var(--border); border-radius:8px;
+}
+.how-scored h4{ margin-top:0; }
+.how-scored p{ margin:.3em 0; font-size:13.5px; color:var(--text); }
+
+.raw-payload{ margin-top:var(--space-2); }
+.raw-payload pre{
+  margin-top:var(--space-2); padding:var(--space-3); background:var(--surface-2);
+  border-radius:8px; font-size:12px; max-height:280px; overflow:auto;
+}
+
+.opportunities-load-more{ margin-top:var(--space-2); }
+
 /* ---- scrollbar ---- */
 *::-webkit-scrollbar{ width:11px; height:11px; }
 *::-webkit-scrollbar-track{ background:var(--bg); }
