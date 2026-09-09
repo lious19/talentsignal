@@ -141,6 +141,14 @@ export function createFakeOpportunitiesPool() {
       return { rows: [...filtered].reverse() };
     }
 
+    // S-24 (Fix 3): opportunities.ts's rawPayload lookup. This fake never
+    // seeds raw_requisitions, so every lookup faithfully returns "nothing
+    // ingested yet" -- exactly what a real seeded-but-never-ingested
+    // opportunity would get back, not a special case for tests.
+    if (sql.includes("FROM raw_requisitions")) {
+      return { rows: [] };
+    }
+
     throw new Error(`fakeOpportunitiesPool: unexpected query — ${sql}`);
   });
 

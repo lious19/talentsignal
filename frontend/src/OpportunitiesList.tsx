@@ -11,6 +11,11 @@ interface ScoreFactor {
   // curated list, so the structured breakdown never hides which evidence
   // drove the score (confidence's factors never set this).
   basis?: string;
+  // S-23 (06_decisions/046): only present when basis is "measured" -- the
+  // actual family/median numbers the value was computed from.
+  familyKey?: string;
+  familyMedianDaysOpen?: number;
+  globalMedianDaysOpen?: number;
 }
 
 interface Opportunity {
@@ -34,6 +39,10 @@ interface Opportunity {
   hardToFillReasons?: string[];
   hardToFillFactors?: ScoreFactor[];
   hardToFillVersion?: string;
+  // S-24 (Fix 3): the real S-23 role-family classification (migration 018),
+  // exposed by the backend for the first time this story. Null on rows
+  // classifyFamily() has never run against (not yet backfilled).
+  familyKey?: string | null;
 }
 
 type OpportunitiesState =
@@ -50,6 +59,74 @@ type OpportunitiesState =
 // "Load more" keeps the existing plain <ul>/<li> markup every current test
 // already asserts against.
 const PAGE_SIZE = 50;
+
+type RawPayloadState =
+  | { status: "collapsed" }
+  | { status: "loading" }
+  | { status: "ok"; payload: unknown }
+  | { status: "error" };
+
+// S-24 (Fix 3): "a small 'raw payload' link that expands to show the raw
+// JSON from raw_requisitions" -- fetched on demand (per opportunity, per
+// click), never joined onto the list fetch every row already did, so
+// expanding one row's payload can't slow down the other 49 on screen.
+// Reuses POST /opportunities/score (Fix 3's backend change), not a new
+// endpoint.
+function RawPayloadExpander({ opportunityId }: { opportunityId: string }) {
+  const [state, setState] = useState<RawPayloadState>({ status: "collapsed" });
+
+  async function handleClick() {
+    if (state.status === "ok") {
+      setState({ status: "collapsed" });
+      return;
+    }
+
+    setState({ status: "loading" });
+    const token = getStoredToken();
+    if (!token) {
+      setState({ status: "error" });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/opportunities/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ opportunityIds: [opportunityId] }),
+      });
+      if (!res.ok) throw new Error(`raw payload fetch failed: ${res.status}`);
+      const body = (await res.json()) as { opportunities: { rawPayload: unknown }[] };
+      setState({ status: "ok", payload: body.opportunities[0]?.rawPayload ?? null });
+    } catch {
+      setState({ status: "error" });
+    }
+  }
+
+  return (
+    <div className="raw-payload">
+      <button type="button" onClick={handleClick}>
+        {state.status === "ok" ? "Hide raw payload" : "Show raw payload"}
+      </button>
+      {state.status === "loading" && <p>Loading raw payload...</p>}
+      {state.status === "error" && <p>Could not load raw payload.</p>}
+      {state.status === "ok" &&
+        (state.payload ? (
+          <pre>{JSON.stringify(state.payload, null, 2)}</pre>
+        ) : (
+          <p>No raw ingested payload found for this opportunity yet.</p>
+        ))}
+    </div>
+  );
+}
+
+// S-23's roleScarcity factor is the only one that ever carries a basis --
+// this reads it out of whichever breakdown the row actually has (hard-to-fill
+// factors always carry it when present; confidence factors never do), so
+// "How this was scored" can show it regardless of whether the row is
+// currently flagged hard-to-fill.
+function roleScarcityFactor(opportunity: Opportunity): ScoreFactor | undefined {
+  return opportunity.hardToFillFactors?.find((f) => f.factor === "roleScarcity");
+}
 
 export function OpportunitiesList() {
   const [state, setState] = useState<OpportunitiesState>({ status: "loading" });
@@ -131,6 +208,29 @@ export function OpportunitiesList() {
               </span>
             </>
           )}
+          {/* S-24 (Fix 3): open by default, not a <details> collapse -- Ali's
+              "where does the signal come from" complaint was that provenance
+              was invisible without leaving the screen, so this stays visible
+              the moment the row renders. */}
+          <div className="how-scored" aria-label="how this was scored">
+            <h4>How this was scored</h4>
+            {/* Plain <p> lines, not a <ul>/<li> list -- this sits inside the
+                same <li> as the rest of the row, and an inner list would
+                shift every getAllByRole("listitem") index the existing
+                S-04 rank test relies on. */}
+            <p>Source: {opportunity.source}</p>
+            {opportunity.familyKey && <p>Role family: {opportunity.familyKey}</p>}
+            {(() => {
+              const roleScarcity = roleScarcityFactor(opportunity);
+              if (!roleScarcity?.basis || roleScarcity.basis === "n/a") return null;
+              return <p>Hard-to-fill basis: {roleScarcity.basis}</p>;
+            })()}
+            <p>{opportunity.reasons.join(", ")}</p>
+            {opportunity.hardToFill && opportunity.hardToFillReasons && opportunity.hardToFillReasons.length > 0 && (
+              <p>🔴 {opportunity.hardToFillReasons.join(", ")}</p>
+            )}
+            <RawPayloadExpander opportunityId={opportunity.id} />
+          </div>
           {/* Native <details>/<summary> gives expand/collapse via built-in
               browser state — no useState needed, since the data is already
               part of the fetched opportunity object (S-07 trust scenario:

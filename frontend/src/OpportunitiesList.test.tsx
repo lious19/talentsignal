@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { OpportunitiesList } from "./OpportunitiesList";
 
 const OPPORTUNITY = {
@@ -255,5 +255,106 @@ describe("OpportunitiesList", () => {
     expect(item).toHaveTextContent("roleScarcity: weight 0.6, value 1, contributes 0.6, basis: measured");
     expect(item).toHaveTextContent("daysOpen: weight 0.2, value 1, contributes 0.2");
     expect(item).not.toHaveTextContent("daysOpen: weight 0.2, value 1, contributes 0.2, basis");
+  });
+
+  it("shows source, family_key, and basis in an always-visible 'How this was scored' section (S-24 Fix 3)", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const measuredOpportunity = {
+      ...HARD_TO_FILL_OPPORTUNITY,
+      id: "opp-measured",
+      familyKey: "ml-ai",
+      hardToFillVersion: "hard-to-fill-026-v2",
+      hardToFillFactors: [
+        {
+          factor: "roleScarcity",
+          weight: 0.6,
+          value: 1,
+          contribution: 0.6,
+          basis: "measured",
+          familyKey: "ml-ai",
+          familyMedianDaysOpen: 69,
+          globalMedianDaysOpen: 33,
+        },
+        { factor: "daysOpen", weight: 0.2, value: 1, contribution: 0.2, basis: "n/a" },
+        { factor: "repostedRole", weight: 0.2, value: 1, contribution: 0.2, basis: "n/a" },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ opportunities: [measuredOpportunity] }),
+      }),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Insight Analytics")).toBeInTheDocument());
+    const item = screen.getByText("Insight Analytics").closest("li");
+    expect(item).not.toBeNull();
+    const howScored = within(item as HTMLElement).getByLabelText("how this was scored");
+    // Not behind a <details> collapse -- visible without any interaction.
+    expect(howScored).toBeVisible();
+    expect(howScored).toHaveTextContent("Source: mock-job-board");
+    expect(howScored).toHaveTextContent("Role family: ml-ai");
+    expect(howScored).toHaveTextContent("Hard-to-fill basis: measured");
+  });
+
+  it("fetches and shows the raw ingested payload on demand, without fetching it for every row up front", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    const listFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ opportunities: [OPPORTUNITY] }),
+    });
+    const scoreFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ opportunities: [{ rawPayload: { title: "Acme Corp Engineer", id: "raw-1" } }] }),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => (init?.method === "POST" ? scoreFetch(url, init) : listFetch(url, init))),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    expect(scoreFetch).not.toHaveBeenCalled();
+
+    const item = screen.getByText("Acme Corp").closest("li") as HTMLElement;
+    fireEvent.click(within(item).getByRole("button", { name: "Show raw payload" }));
+
+    await waitFor(() => expect(within(item).getByText(/"id": "raw-1"/)).toBeInTheDocument());
+    expect(scoreFetch).toHaveBeenCalledTimes(1);
+    expect(scoreFetch.mock.calls[0][1].body).toBe(JSON.stringify({ opportunityIds: ["opp-1"] }));
+  });
+
+  it("shows an explicit message when no raw payload has been ingested yet for that opportunity", async () => {
+    localStorage.setItem("ts_token", "fake-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () =>
+            init?.method === "POST"
+              ? { opportunities: [{ rawPayload: null }] }
+              : { opportunities: [OPPORTUNITY] },
+        }),
+      ),
+    );
+
+    render(<OpportunitiesList />);
+
+    await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument());
+    const item = screen.getByText("Acme Corp").closest("li") as HTMLElement;
+    fireEvent.click(within(item).getByRole("button", { name: "Show raw payload" }));
+
+    await waitFor(() =>
+      expect(within(item).getByText("No raw ingested payload found for this opportunity yet.")).toBeInTheDocument(),
+    );
   });
 });

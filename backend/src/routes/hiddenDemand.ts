@@ -47,6 +47,12 @@ export interface OpportunityRow {
   days_open: number;
   description_churn: number;
   diff_computed_at: string | null;
+  // S-23 (migration 018): title -> role-family classification, computed by
+  // classifyFamily() at scoring time. Nullable -- rows scored before S-23
+  // wired classifyFamily() into the ingestion path (and any row not yet
+  // backfilled) have no value. Was already a real column, just never
+  // reached toOpportunityResponse()'s return shape before S-24.
+  family_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +92,10 @@ export function toOpportunityResponse(row: OpportunityRow) {
     daysOpen: row.days_open,
     descriptionChurn: row.description_churn,
     diffComputedAt: row.diff_computed_at,
+    // S-24 (Fix 3): surfaces the real S-23 family classification -- the
+    // column has existed since migration 018, this is just the first route
+    // to expose it.
+    familyKey: row.family_key,
     source: row.source,
     externalSignalId: row.external_signal_id,
     createdAt: row.created_at,
