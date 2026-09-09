@@ -149,6 +149,20 @@ export function createFakeOpportunitiesPool() {
       return { rows: [] };
     }
 
+    // S-24 (step3): computeFamilyScarcity() (S-23) and
+    // computeCapacitySignalLookup() (S-24) are now called once per
+    // upsertBatch() run (06_decisions/046/047's "computed once per scoring
+    // run" design -- never wired into the live path before this story, a
+    // real gap this pass fixed). This fake never seeds opportunities.
+    // family_key or raw_capacity_signals, so every lookup faithfully
+    // returns "nothing measured yet," matching a real pristine schema.
+    if (sql.includes("percentile_cont")) {
+      return { rows: [] };
+    }
+    if (sql.includes("FROM raw_capacity_signals")) {
+      return { rows: [] };
+    }
+
     throw new Error(`fakeOpportunitiesPool: unexpected query — ${sql}`);
   });
 

@@ -68,10 +68,11 @@ describe("HF-2: hard-to-fill score on opportunities", () => {
     expect(opp.hardToFill).toBe(false);
     expect(opp.hardToFillScore).toBeLessThan(0.5);
     // A visible zero-value row is more auditable than an omitted one: the
-    // three-factor breakdown is present whether or not the badge shows.
-    expect(opp.hardToFillFactors).toHaveLength(3);
+    // four-factor breakdown (S-24 adds capacitySignal) is present whether or
+    // not the badge shows.
+    expect(opp.hardToFillFactors).toHaveLength(4);
     expect(opp.hardToFillFactors.map((f: { factor: string }) => f.factor)).toEqual(
-      expect.arrayContaining(["roleScarcity", "daysOpen", "repostedRole"]),
+      expect.arrayContaining(["roleScarcity", "daysOpen", "repostedRole", "capacitySignal"]),
     );
   });
 

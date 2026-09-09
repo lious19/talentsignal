@@ -89,9 +89,16 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
     expect(res.status).toBe(201);
     expect(res.body.opportunities).toHaveLength(500);
     // requireAuth never touches the DB. 06_decisions/042 (updated): 500
-    // signals chunk into 5 x 100 (UPSERT_CHUNK_SIZE), one query per chunk —
+    // signals chunk into 5 x 100 (UPSERT_CHUNK_SIZE), one INSERT per chunk —
     // a regression back to a per-row loop would make this 500, not 5.
-    expect(pool.query).toHaveBeenCalledTimes(5);
+    // Filtered to INSERT calls specifically (not a raw total call count)
+    // since S-24 added two more once-per-batch lookup queries
+    // (computeFamilyScarcity/computeCapacitySignalLookup) alongside the
+    // chunked inserts this test actually cares about.
+    const insertCalls = (pool.query as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter(
+      ([sql]) => typeof sql === "string" && sql.includes("INSERT INTO opportunities"),
+    );
+    expect(insertCalls).toHaveLength(5);
   });
 
   it("06_decisions/042: 500 signals issue exactly 5 chunked SQL statements (100 x 5), not 1", async () => {
@@ -110,10 +117,11 @@ describe("POST /api/hidden-demand/analyze — batch ranking", () => {
     const opportunities = await upsertBatch(pool, signals);
 
     expect(opportunities).toHaveLength(500);
-    expect(pool.query).toHaveBeenCalledTimes(5);
-    const callSizes = (pool.query as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
-      (call) => (call[1] as unknown[][])[0].length,
+    const insertCalls = (pool.query as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter(
+      ([sql]) => typeof sql === "string" && sql.includes("INSERT INTO opportunities"),
     );
+    expect(insertCalls).toHaveLength(5);
+    const callSizes = insertCalls.map((call) => (call[1] as unknown[][])[0].length);
     expect(callSizes).toEqual([100, 100, 100, 100, 100]);
   });
 

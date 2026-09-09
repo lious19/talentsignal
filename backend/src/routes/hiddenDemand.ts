@@ -10,6 +10,8 @@ import { scoreSignal, type ScoreFactor } from "../scoring/confidenceScore";
 // 06_decisions/026. HARD_TO_FILL_CONFIG.hardToFillThreshold is the badge cutoff.
 import { hardToFillScore, type HardToFillFactor } from "../scoring/hardToFillScore";
 import { HARD_TO_FILL_CONFIG } from "../scoring/hardToFillConfig";
+import { computeFamilyScarcity, type FamilyScarcityLookup } from "../scoring/familyScarcity";
+import { computeCapacitySignalLookup, type CapacitySignalLookup } from "../scoring/capacitySignal";
 
 // The mock does no real I/O, but the timeout is real regardless: it bounds
 // how long a hung or slow provider (mock or, later, a real HTTP call) can
@@ -161,6 +163,8 @@ export const UPSERT_CHUNK_SIZE = 100;
 async function upsertChunk(
   pool: Pool,
   signals: MarketSignal[],
+  familyScarcity: FamilyScarcityLookup | undefined,
+  capacitySignalLookup: CapacitySignalLookup | undefined,
 ): Promise<ReturnType<typeof toOpportunityResponse>[]> {
   if (signals.length === 0) return [];
 
@@ -193,7 +197,12 @@ async function upsertChunk(
     const { score, reasons, factors, weightsVersion } = scoreSignal(signal);
     // Second, independent scorer over the SAME signal — computed alongside,
     // never inside, scoreSignal(). scoreSignal stays untouched (026).
-    const htf = hardToFillScore(signal);
+    // S-24 fix: familyScarcity (S-23) was defined but never actually
+    // threaded into the live analyze path before this story -- roleScarcity
+    // could never reach "measured" through real ingestion, only through
+    // direct unit tests. Wiring it in alongside the new capacitySignalLookup
+    // fixes that gap; see upsertBatch() below for where both are computed.
+    const htf = hardToFillScore(signal, familyScarcity, capacitySignalLookup);
     sources.push(signal.source);
     externalIds.push(signal.externalId);
     companies.push(signal.company);
@@ -299,12 +308,21 @@ export async function upsertBatch(
 ): Promise<ReturnType<typeof toOpportunityResponse>[]> {
   if (signals.length === 0) return [];
 
+  // Computed ONCE per batch (a "scoring run"), reused across every chunk --
+  // exactly the shape 06_decisions/046/047 both describe, wired into the
+  // real path for the first time here (S-24 fix, see the comment on
+  // hardToFillScore's call site above).
+  const [familyScarcity, capacitySignalLookup] = await Promise.all([
+    computeFamilyScarcity(pool),
+    computeCapacitySignalLookup(pool),
+  ]);
+
   const results: ReturnType<typeof toOpportunityResponse>[] = [];
 
   for (let i = 0; i < signals.length; i += UPSERT_CHUNK_SIZE) {
     const chunk = signals.slice(i, i + UPSERT_CHUNK_SIZE);
     try {
-      const chunkRows = await upsertChunk(pool, chunk);
+      const chunkRows = await upsertChunk(pool, chunk, familyScarcity, capacitySignalLookup);
       results.push(...chunkRows);
     } catch (err) {
       logger.error(

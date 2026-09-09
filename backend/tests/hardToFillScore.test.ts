@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { hardToFillScore } from "../src/scoring/hardToFillScore";
+import { HARD_TO_FILL_CONFIG } from "../src/scoring/hardToFillConfig";
 import type { MarketSignal } from "../src/adapters/marketSignalProvider";
 import type { FamilyScarcityLookup } from "../src/scoring/familyScarcity";
+import type { CapacitySignalLookup } from "../src/scoring/capacitySignal";
 
 const BASE_SIGNAL: MarketSignal = {
   source: "mock-job-board",
@@ -22,6 +24,10 @@ describe("hardToFillScore", () => {
   });
 
   it("scores an in-demand role open a while and reposted as high", () => {
+    // S-24 (v3 reweight): 1*0.48 (roleScarcity) + 1*0.16 (daysOpen, 30/30
+    // saturated) + 1*0.16 (repostedRole) + 0 (no capacitySignal lookup) = 0.8
+    // -- no longer 1.0 now that capacitySignal claims 0.2 of the total
+    // weight budget (06_decisions/047).
     const { score, reasons } = hardToFillScore({
       ...BASE_SIGNAL,
       title: "Senior Data Analyst",
@@ -29,7 +35,7 @@ describe("hardToFillScore", () => {
       isRepost: true,
     });
 
-    expect(score).toBe(1);
+    expect(score).toBe(0.8);
     expect(reasons).toContain("role scarcity: curated (matched decision-026 keyword)");
   });
 
@@ -59,9 +65,10 @@ describe("hardToFillScore", () => {
   });
 
   it("adds the reposted-role weight and reason when the signal is a repost", () => {
+    // S-24 (v3 reweight): repostedRole is 0.16 now, not 0.2.
     const { score, reasons } = hardToFillScore({ ...BASE_SIGNAL, isRepost: true });
 
-    expect(score).toBeCloseTo(0.2, 5);
+    expect(score).toBeCloseTo(0.16, 5);
     expect(reasons).toContain("reposted role");
   });
 
@@ -72,7 +79,10 @@ describe("hardToFillScore", () => {
     expect(at30.score).toBeCloseTo(at200.score, 5);
   });
 
-  it("stays within [0, 1] for the maximum-signal case", () => {
+  it("stays within [0, 1] for the maximum non-capacity signal case", () => {
+    // S-24 (v3 reweight): the other three factors alone now cap at 0.8
+    // (0.48 + 0.16 + 0.16) -- reaching a true 1.0 requires a capacitySignal
+    // contribution too, see the capacitySignal describe block below.
     const { score } = hardToFillScore({
       ...BASE_SIGNAL,
       title: "Data Engineer",
@@ -81,7 +91,7 @@ describe("hardToFillScore", () => {
     });
 
     expect(score).toBeLessThanOrEqual(1);
-    expect(score).toBe(1);
+    expect(score).toBe(0.8);
   });
 
   it("is idempotent: the same signal always produces the same score and factor breakdown", () => {
@@ -90,10 +100,10 @@ describe("hardToFillScore", () => {
     expect(hardToFillScore(signal)).toEqual(hardToFillScore(signal));
   });
 
-  it("always includes all three factors in a fixed order, even when a contribution is zero", () => {
-    const { factors } = hardToFillScore(BASE_SIGNAL); // generic title, not a repost
+  it("always includes all four factors in a fixed order, even when a contribution is zero", () => {
+    const { factors } = hardToFillScore(BASE_SIGNAL); // generic title, not a repost, no capacity lookup
 
-    expect(factors.map((f) => f.factor)).toEqual(["roleScarcity", "daysOpen", "repostedRole"]);
+    expect(factors.map((f) => f.factor)).toEqual(["roleScarcity", "daysOpen", "repostedRole", "capacitySignal"]);
 
     const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
     expect(roleScarcity.value).toBe(0);
@@ -102,20 +112,29 @@ describe("hardToFillScore", () => {
     const repostedRole = factors.find((f) => f.factor === "repostedRole")!;
     expect(repostedRole.value).toBe(0);
     expect(repostedRole.contribution).toBe(0);
+
+    const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+    expect(capacitySignal.basis).toBe("none");
+    expect(capacitySignal.value).toBe(0);
+    expect(capacitySignal.contribution).toBe(0);
   });
 
   it("reports each factor's configured weight alongside its value and contribution", () => {
+    // S-24 (v3 reweight): roleScarcity 0.6->0.48, repostedRole 0.2->0.16.
     const { factors } = hardToFillScore({ ...BASE_SIGNAL, title: "ML Engineer", isRepost: true });
 
     const roleScarcity = factors.find((f) => f.factor === "roleScarcity")!;
-    expect(roleScarcity.weight).toBe(0.6);
+    expect(roleScarcity.weight).toBe(0.48);
     expect(roleScarcity.value).toBe(1);
-    expect(roleScarcity.contribution).toBe(0.6);
+    expect(roleScarcity.contribution).toBe(0.48);
 
     const repostedRole = factors.find((f) => f.factor === "repostedRole")!;
-    expect(repostedRole.weight).toBe(0.2);
+    expect(repostedRole.weight).toBe(0.16);
     expect(repostedRole.value).toBe(1);
-    expect(repostedRole.contribution).toBe(0.2);
+    expect(repostedRole.contribution).toBe(0.16);
+
+    const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+    expect(capacitySignal.weight).toBe(0.2);
   });
 
   it("the factor contributions sum to exactly the returned score", () => {
@@ -265,6 +284,142 @@ describe("hardToFillScore", () => {
 
       expect(roleScarcity.basis).toBe("curated");
       expect(roleScarcity.value).toBe(1);
+    });
+  });
+
+  describe("S-24: capacitySignal", () => {
+    // Relative to whenever the test actually runs, not a hardcoded absolute
+    // date -- stays correct indefinitely instead of quietly rotting once
+    // "now" moves far enough past a hardcoded year.
+    function monthsAgo(months: number): string {
+      const d = new Date();
+      d.setMonth(d.getMonth() - months);
+      return d.toISOString().slice(0, 10);
+    }
+
+    it("weights sum to exactly 1.0 (v3 reweight, 06_decisions/047)", () => {
+      const { roleScarcity, daysOpen, repostedRole, capacitySignal } = HARD_TO_FILL_CONFIG.weights;
+      expect(roleScarcity + daysOpen + repostedRole + capacitySignal).toBe(1);
+    });
+
+    it("stamps the v3 config version", () => {
+      const { version } = hardToFillScore(BASE_SIGNAL);
+      expect(version).toBe("hard-to-fill-026-v3");
+    });
+
+    it("a real alias-table match within the recency window contributes full weight, basis measured", () => {
+      const eventDate = monthsAgo(3);
+      const lookup: CapacitySignalLookup = {
+        rows: [{ source: "h1b-lca", employerNameRaw: "GITLAB INC.", eventDate }],
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, company: "GitLab" },
+        undefined,
+        lookup,
+      );
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("measured");
+      // 0.2 (weight) * 1 (matchConfidence, alias) * 1.0 (h1b-lca sourceStrength) * 1 (within window)
+      expect(capacitySignal.contribution).toBe(0.2);
+      expect(capacitySignal.recencyExcluded).toBe(false);
+      expect(reasons).toContain(`capacity: H-1B LCA matched (GITLAB INC.), high-confidence, dated ${eventDate}`);
+    });
+
+    it("a low-confidence fuzzy match within the window is basis curated, dampened by confidence and sourceStrength", () => {
+      const lookup: CapacitySignalLookup = {
+        // "GitLab Deutschland GmbH" vs "GitLab" -- 0.5 fuzzy score (companyMatch.test.ts pins this exact number).
+        rows: [{ source: "federal-award", employerNameRaw: "GitLab Deutschland GmbH", eventDate: monthsAgo(8) }],
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, company: "GitLab" },
+        undefined,
+        lookup,
+      );
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("curated");
+      // 0.2 (weight) * 0.5 (matchConfidence) * 0.6 (federal-award sourceStrength) * 1 (within window)
+      expect(capacitySignal.contribution).toBeCloseTo(0.06, 5);
+      expect(reasons.some((r) => r.includes("low-confidence"))).toBe(true);
+    });
+
+    it("a real match OUTSIDE the recency window contributes zero but stays visible, not silently indistinguishable from no match", () => {
+      const lookup: CapacitySignalLookup = {
+        // Real Step 0 finding: GitLab federal awards from 2016-2017, all
+        // stale relative to a 24-month window from any 2026 scoring date.
+        rows: [{ source: "federal-award", employerNameRaw: "GITLAB INC.", eventDate: "2016-07-20" }],
+      };
+
+      const { factors, reasons } = hardToFillScore(
+        { ...BASE_SIGNAL, company: "GitLab" },
+        undefined,
+        lookup,
+      );
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      // Real match, real basis -- NOT "none" -- but zero contribution.
+      expect(capacitySignal.basis).toBe("measured");
+      expect(capacitySignal.contribution).toBe(0);
+      expect(capacitySignal.recencyExcluded).toBe(true);
+      expect(capacitySignal.matchedEmployerName).toBe("GITLAB INC.");
+      expect(reasons.some((r) => r.includes("excluded") && r.includes("2016-07-20"))).toBe(true);
+    });
+
+    it("no matching company at all is basis none, silent reason, same convention as roleScarcity", () => {
+      const lookup: CapacitySignalLookup = {
+        rows: [{ source: "h1b-lca", employerNameRaw: "Totally Unrelated Co", eventDate: monthsAgo(8) }],
+      };
+
+      const { factors, reasons } = hardToFillScore({ ...BASE_SIGNAL, company: "GitLab" }, undefined, lookup);
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("none");
+      expect(capacitySignal.contribution).toBe(0);
+      expect(reasons.some((r) => r.startsWith("capacity:"))).toBe(false);
+    });
+
+    it("a below-drop-threshold match (0.33, unaliased 'b v') is treated identically to no match -- basis none, no evidence exposed", () => {
+      // The exact naive-Jaccard case Step 0 found: without the alias table
+      // this would be 0.33, below dropBelowThreshold (0.5). Using an
+      // unrelated variant that also scores low to prove the DROP behavior
+      // itself (not the alias table, which companyMatch.test.ts already
+      // pins separately).
+      const lookup: CapacitySignalLookup = {
+        rows: [{ source: "form-d", employerNameRaw: "GitLab Something Else Entirely Corp", eventDate: monthsAgo(8) }],
+      };
+
+      const { factors } = hardToFillScore({ ...BASE_SIGNAL, company: "GitLab" }, undefined, lookup);
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("none");
+      expect(capacitySignal.matchedEmployerName).toBeUndefined();
+      expect(capacitySignal.contribution).toBe(0);
+    });
+
+    it("omitting capacitySignalLookup entirely (every pre-S-24 caller/test) keeps capacitySignal at basis none, contribution 0", () => {
+      const { factors } = hardToFillScore({ ...BASE_SIGNAL, title: "Data Engineer", daysOpen: 30, isRepost: true });
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("none");
+      expect(capacitySignal.contribution).toBe(0);
+    });
+
+    it("picks the best-scoring match across multiple raw_capacity_signals rows, not just the first", () => {
+      const lookup: CapacitySignalLookup = {
+        rows: [
+          { source: "form-d", employerNameRaw: "Unrelated Co", eventDate: monthsAgo(8) },
+          { source: "h1b-lca", employerNameRaw: "GITLAB INC.", eventDate: monthsAgo(3) }, // real alias, best
+        ],
+      };
+
+      const { factors } = hardToFillScore({ ...BASE_SIGNAL, company: "GitLab" }, undefined, lookup);
+
+      const capacitySignal = factors.find((f) => f.factor === "capacitySignal")!;
+      expect(capacitySignal.basis).toBe("measured");
+      expect(capacitySignal.capacitySource).toBe("h1b-lca");
     });
   });
 });

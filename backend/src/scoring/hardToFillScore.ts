@@ -1,15 +1,17 @@
 import type { MarketSignal } from "../adapters/marketSignalProvider";
-import { HARD_TO_FILL_CONFIG } from "./hardToFillConfig";
+import { HARD_TO_FILL_CONFIG, CAPACITY_SIGNAL_CONFIG } from "./hardToFillConfig";
 import type { FamilyScarcityLookup } from "./familyScarcity";
+import { resolveCapacitySignal, sourceLabel, type CapacitySignalLookup } from "./capacitySignal";
 
 // S-23: which evidence produced roleScarcity's value. "n/a" is stamped on
 // daysOpen/repostedRole, which have no basis concept of their own -- kept as
 // a required field (not optional) so every persisted factor has the same
-// shape, rather than some rows silently omitting it.
+// shape, rather than some rows silently omitting it. S-24: capacitySignal
+// reuses the same three-state shape (06_decisions/047).
 export type HardToFillBasis = "measured" | "curated" | "none" | "n/a";
 
 export interface HardToFillFactor {
-  factor: "roleScarcity" | "daysOpen" | "repostedRole";
+  factor: "roleScarcity" | "daysOpen" | "repostedRole" | "capacitySignal";
   weight: number;
   value: number;
   contribution: number;
@@ -21,6 +23,14 @@ export interface HardToFillFactor {
   familyKey?: string;
   familyMedianDaysOpen?: number;
   globalMedianDaysOpen?: number;
+  // S-24: only present on a capacitySignal factor with a real match
+  // (measured or curated) -- present even when recencyExcluded is true, so
+  // a real match that got zeroed by the recency gate stays visible rather
+  // than indistinguishable from "no match ever existed" (06_decisions/047).
+  capacitySource?: string;
+  matchedEmployerName?: string;
+  eventDate?: string | null;
+  recencyExcluded?: boolean;
 }
 
 export interface HardToFillResult {
@@ -120,10 +130,15 @@ function resolveRoleScarcity(
 // The one place the arithmetic happens, in full float precision — no
 // rounding yet. Same "round only at the boundary" convention
 // confidenceScore.ts established.
-function buildRawFactors(signal: MarketSignal, familyScarcity: FamilyScarcityLookup | undefined): RawFactor[] {
+function buildRawFactors(
+  signal: MarketSignal,
+  familyScarcity: FamilyScarcityLookup | undefined,
+  capacitySignalLookup: CapacitySignalLookup | undefined,
+): RawFactor[] {
   const { weights, daysOpenSaturationThreshold } = HARD_TO_FILL_CONFIG;
   const daysOpenRatio = Math.min(signal.daysOpen, daysOpenSaturationThreshold) / daysOpenSaturationThreshold;
   const roleScarcity = resolveRoleScarcity(signal, familyScarcity);
+  const capacitySignal = resolveCapacitySignal(signal.company, capacitySignalLookup);
 
   return [
     {
@@ -150,6 +165,17 @@ function buildRawFactors(signal: MarketSignal, familyScarcity: FamilyScarcityLoo
       contribution: signal.isRepost ? weights.repostedRole : 0,
       basis: "n/a",
     },
+    {
+      factor: "capacitySignal",
+      weight: weights.capacitySignal,
+      value: capacitySignal.value,
+      contribution: weights.capacitySignal * capacitySignal.value,
+      basis: capacitySignal.basis,
+      capacitySource: capacitySignal.capacitySource,
+      matchedEmployerName: capacitySignal.matchedEmployerName,
+      eventDate: capacitySignal.eventDate,
+      recencyExcluded: capacitySignal.recencyExcluded,
+    },
   ];
 }
 
@@ -166,6 +192,10 @@ function toDisplayFactors(raw: RawFactor[]): HardToFillFactor[] {
     ...(f.familyKey !== undefined ? { familyKey: f.familyKey } : {}),
     ...(f.familyMedianDaysOpen !== undefined ? { familyMedianDaysOpen: f.familyMedianDaysOpen } : {}),
     ...(f.globalMedianDaysOpen !== undefined ? { globalMedianDaysOpen: f.globalMedianDaysOpen } : {}),
+    ...(f.capacitySource !== undefined ? { capacitySource: f.capacitySource } : {}),
+    ...(f.matchedEmployerName !== undefined ? { matchedEmployerName: f.matchedEmployerName } : {}),
+    ...(f.eventDate !== undefined ? { eventDate: f.eventDate } : {}),
+    ...(f.recencyExcluded !== undefined ? { recencyExcluded: f.recencyExcluded } : {}),
   }));
 }
 
@@ -194,6 +224,23 @@ function factorsToReasons(signal: MarketSignal, factors: HardToFillFactor[]): st
   const repostedRole = factors.find((f) => f.factor === "repostedRole");
   if (repostedRole && repostedRole.contribution > 0) reasons.push("reposted role");
 
+  // S-24 acceptance criterion 1: names the real source explicitly. A real
+  // match outside the recency window still gets a line -- naming the real
+  // date and why it doesn't count -- rather than staying silent the way
+  // "none" does, so a recency-zeroed match is never confused with "no
+  // capacity evidence was ever found" (06_decisions/047).
+  const capacitySignal = factors.find((f) => f.factor === "capacitySignal");
+  if (capacitySignal && (capacitySignal.basis === "measured" || capacitySignal.basis === "curated")) {
+    const label = sourceLabel(capacitySignal.capacitySource ?? "");
+    const confidenceWord = capacitySignal.basis === "measured" ? "high-confidence" : "low-confidence";
+    const base = `capacity: ${label} matched (${capacitySignal.matchedEmployerName}), ${confidenceWord}`;
+    reasons.push(
+      capacitySignal.recencyExcluded
+        ? `${base} — excluded, ${capacitySignal.eventDate ? `dated ${capacitySignal.eventDate}` : "date unknown"} is older than the ${CAPACITY_SIGNAL_CONFIG.recencyMonths}-month recency window`
+        : `${base}${capacitySignal.eventDate ? `, dated ${capacitySignal.eventDate}` : ""}`,
+    );
+  }
+
   return reasons;
 }
 
@@ -213,9 +260,20 @@ function factorsToReasons(signal: MarketSignal, factors: HardToFillFactor[]): st
  * caller and unit test that predates this story) reproduces the exact
  * pre-S-23 curated-only behavior: roleScarcity can never be "measured"
  * without a family_scarcity lookup to measure against.
+ *
+ * S-24: `capacitySignalLookup` is the same shape of optional, once-per-run
+ * lookup (computeCapacitySignalLookup in capacitySignal.ts). Omitting it
+ * makes capacitySignal always resolve to basis "none", value 0 -- every
+ * existing caller/test that predates this story keeps compiling and keeps
+ * its exact prior score (capacitySignal's weight contributes 0, same as if
+ * the factor didn't exist).
  */
-export function hardToFillScore(signal: MarketSignal, familyScarcity?: FamilyScarcityLookup): HardToFillResult {
-  const raw = buildRawFactors(signal, familyScarcity);
+export function hardToFillScore(
+  signal: MarketSignal,
+  familyScarcity?: FamilyScarcityLookup,
+  capacitySignalLookup?: CapacitySignalLookup,
+): HardToFillResult {
+  const raw = buildRawFactors(signal, familyScarcity, capacitySignalLookup);
   const score = round3(raw.reduce((sum, f) => sum + f.contribution, 0));
   const factors = toDisplayFactors(raw);
   const reasons = factorsToReasons(signal, factors);
