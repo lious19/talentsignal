@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" font-family="Arial, sans-serif">
+  <style>
+    .title { font-size: 18px; font-weight: bold; fill: #14171f; }
+    .subtitle { font-size: 12.5px; fill: #68707e; }
+    .label { font-size: 13px; fill: #14171f; }
+    .value { font-size: 13px; font-weight: bold; fill: #14171f; }
+    .axis { font-size: 11px; fill: #68707e; }
+    .note { font-size: 11.5px; fill: #b45309; font-style: italic; }
+  </style>
+  <rect width="720" height="340" fill="#ffffff"/>
+  <text x="20" y="28" class="title">capacitySignal basis distribution — real run, 1,004 v3-scored opportunities</text>
+  <text x="20" y="46" class="subtitle">LIVE: 232 real GitLab (Greenhouse) + 772 real gopuff (Lever) requisitions, scored 2026-09-09</text>
+
+  <!-- axis line -->
+  <line x1="220" y1="70" x2="220" y2="260" stroke="#e3e6ea" stroke-width="1"/>
+
+  <!-- none: 772 (gopuff, no capacity source ever matched) -->
+  <text x="200" y="100" text-anchor="end" class="label">none</text>
+  <rect x="220" y="82" width="386" height="36" fill="#e3e6ea"/>
+  <text x="616" y="105" class="value">772 (gopuff — no source ever matched)</text>
+
+  <!-- measured: 232 (GitLab, alias-confidence 1.0, all recency-excluded) -->
+  <text x="200" y="160" text-anchor="end" class="label">measured</text>
+  <rect x="220" y="142" width="116" height="36" fill="#15803d"/>
+  <text x="346" y="165" class="value">232 (GitLab — real federal-award match, ALL recency-excluded)</text>
+
+  <!-- curated: 0 -->
+  <text x="200" y="220" text-anchor="end" class="label">curated</text>
+  <rect x="220" y="202" width="2" height="36" fill="#6366f1"/>
+  <text x="230" y="225" class="value">0</text>
+
+  <text x="220" y="270" class="note">Every "measured" match's contribution = 0 — the 24-month recency gate zeroed all 4 real</text>
+  <text x="220" y="286" class="note">GitLab federal awards (2015–2017). Net effect on every score today: zero, by design.</text>
+
+  <text x="20" y="320" class="axis">Source: raw_capacity_signals (LIVE, USASpending.gov) + opportunities.hard_to_fill_factors (LIVE, real Postgres query)</text>
+  <text x="20" y="336" class="axis">H-1B LCA (LIVE, DOL FY2026 Q1) and SEC Form D (LIVE, 2026 Q2) both matched 0 — no bar, not omitted.</text>
+</svg>

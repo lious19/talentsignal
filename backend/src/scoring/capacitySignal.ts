@@ -17,15 +17,30 @@ export interface CapacitySignalLookup {
 // already in raw_capacity_signals; ingestion (LcaProvider/
 // FederalAwardsProvider/FormDProvider, via `npm run ingest:capacity-once`)
 // is a separate, occasional batch job, not run here.
+// node-postgres parses a DATE column into a native JS Date, regardless of
+// how the query's TS generic types it -- a real bug this exact line caused
+// until a real end-to-end run (Step 5b) surfaced it: interpolating a Date
+// object into a template string calls its default .toString()
+// ("Mon Sep 26 2016 00:00:00 GMT-0500 (Central Daylight Time)"), not a
+// clean ISO date, in every capacity rationale sentence. Every unit test
+// used a string literal in a fake pool, so this was invisible until a real
+// pg row went through it. Normalized explicitly here, once, so nothing
+// downstream (recency math, rationale strings) has to guard against it.
+function toIsoDateString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value);
+}
+
 export async function computeCapacitySignalLookup(pool: Pool): Promise<CapacitySignalLookup> {
-  const { rows } = await pool.query<{ source: string; employer_name_raw: string; event_date: string | null }>(
+  const { rows } = await pool.query<{ source: string; employer_name_raw: string; event_date: unknown }>(
     "SELECT source, employer_name_raw, event_date FROM raw_capacity_signals",
   );
   return {
     rows: rows.map((row) => ({
       source: row.source,
       employerNameRaw: row.employer_name_raw,
-      eventDate: row.event_date,
+      eventDate: toIsoDateString(row.event_date),
     })),
   };
 }

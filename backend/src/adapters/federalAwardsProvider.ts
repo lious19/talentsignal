@@ -40,10 +40,17 @@ async function searchAwardsForCompany(
         time_period: [{ start_date: "2007-10-01", end_date: new Date().toISOString().slice(0, 10) }],
         award_type_codes: AWARD_TYPE_CODES,
       },
+      // sort must be one of the requested `fields` -- USASpending 400s
+      // otherwise ("Sort value 'Award Amount' not found in requested
+      // fields"), a real bug this exact line had until Step 5b's live run
+      // caught it (unit tests with a mocked fetch never exercise the real
+      // API's validation). Sorting by Award ID is arbitrary but stable;
+      // order doesn't matter for our purposes since match counts are small
+      // (limit 10) and every result gets used, not just the top one.
       fields: ["Award ID", "Recipient Name"],
       page: 1,
       limit: 10,
-      sort: "Award Amount",
+      sort: "Award ID",
       order: "desc",
     }),
   });
