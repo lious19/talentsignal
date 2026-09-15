@@ -459,30 +459,140 @@ hr{ border:none; border-top:1px solid var(--border); margin:1.1rem 0; }
 .donut-legend-label{ color:var(--text); font-weight:600; }
 .donut-legend-count{ color:var(--mute); margin-left:auto; }
 
-/* ---- opportunities list (S-24 Fix 4: consistent 8/16/24px spacing,
-   muted secondary "how this was scored" / raw-payload blocks so they
-   support the row's headline numbers instead of competing with them) ---- */
-ul[aria-label="opportunities"]{ list-style:none; margin:0; padding:0; }
-ul[aria-label="opportunities"] > li{
+/* ---- opportunities (pre-demo redesign, matches talentsignal-dashboard.html
+   mockup): KPI strip + responsive card grid, replacing the old stacked-list
+   layout. ---- */
+.opportunity-kpi-strip{
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:var(--space-3);
+  margin-bottom:var(--space-5);
+}
+@media (min-width:700px){ .opportunity-kpi-strip{ grid-template-columns:repeat(4, 1fr); } }
+.opportunity-kpi-tile{
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:var(--space-4); margin-bottom:var(--space-4);
+  box-shadow:var(--shadow); padding:var(--space-3) var(--space-4);
+}
+.opportunity-kpi-label{ font-size:11px; font-weight:600; color:var(--mute); margin-bottom:.35em; }
+.opportunity-kpi-value{ font-size:26px; font-weight:800; line-height:1; }
+.opportunity-kpi-value--accent{ color:var(--accent); }
+
+ul.opportunities-grid{
+  list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4);
+  grid-template-columns:1fr;
+}
+@media (min-width:640px){ ul.opportunities-grid{ grid-template-columns:repeat(2, 1fr); } }
+@media (min-width:960px){ ul.opportunities-grid{ grid-template-columns:repeat(3, 1fr); } }
+@media (min-width:1280px){ ul.opportunities-grid{ grid-template-columns:repeat(4, 1fr); } }
+
+.opportunity-card{
+  position:relative; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
   transition:box-shadow 200ms ease;
 }
-ul[aria-label="opportunities"] > li:hover{ box-shadow:var(--shadow-hover); }
-ul[aria-label="opportunities"] details{ margin-top:var(--space-2); }
+.opportunity-card:hover{ box-shadow:var(--shadow-hover); }
+.opportunity-card--priority{ box-shadow:0 0 0 1px var(--accent), var(--shadow-hover); }
+.opportunity-card-rail{ position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--border); }
+.opportunity-card-rail--priority{ background:var(--accent); }
+.opportunity-card-rail--green{ background:var(--success); }
+.opportunity-card-rail--amber{ background:var(--warning); }
+.opportunity-card-rail--red{ background:var(--danger); }
+.opportunity-card-body{ padding:var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 5px); display:flex; flex-direction:column; gap:var(--space-3); }
+
+.opportunity-card-header{ display:flex; align-items:flex-start; gap:var(--space-3); }
+.opportunity-monogram{
+  width:36px; height:36px; border-radius:999px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:800; font-size:13px;
+}
+.opportunity-card-heading{ flex:1; min-width:0; }
+.opportunity-card-title-row{ display:flex; align-items:center; gap:.5em; flex-wrap:wrap; }
+.opportunity-card-title-row h3{ margin:0; font-size:15px; font-weight:800; border-bottom:none; padding-bottom:0; }
+.opportunity-top-pick{
+  display:inline-flex; align-items:center; gap:.3em;
+  background:var(--accent-soft); color:var(--accent-hover);
+  font-size:10.5px; font-weight:800; padding:.15em .5em; border-radius:6px;
+}
+.opportunity-confidence-ring{ flex-shrink:0; }
+
+.opportunity-card-badges{ display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; }
+.opportunity-age-badge{
+  display:inline-flex; align-items:center; height:26px; padding:0 .6em;
+  border-radius:8px; font-size:12px; font-weight:700;
+}
+.opportunity-age-badge--green{ background:#e2f2ea; color:var(--success); }
+.opportunity-age-badge--amber{ background:#fbf0dd; color:var(--warning); }
+.opportunity-age-badge--red{ background:#fbe7e8; color:var(--danger); }
+:root[data-theme="dark"] .opportunity-age-badge--green{ background:#132a20; }
+:root[data-theme="dark"] .opportunity-age-badge--amber{ background:#2e2411; }
+:root[data-theme="dark"] .opportunity-age-badge--red{ background:#33191c; }
+
+.opportunity-spread-badge{
+  display:inline-flex; align-items:center; gap:.4em; height:26px; padding:0 .65em;
+  border-radius:8px; font-size:11px; font-weight:800; text-transform:capitalize;
+}
+.opportunity-spread-badge--high{ background:var(--accent); color:#fff; }
+.opportunity-spread-badge--medium{ background:transparent; color:var(--accent); box-shadow:inset 0 0 0 1.5px var(--accent); }
+.opportunity-spread-badge--low{ background:var(--surface-2); color:var(--mute); box-shadow:inset 0 0 0 1px var(--border); }
+.opportunity-spread-info{ cursor:help; }
+
+.opportunity-stale-callout{
+  display:flex; align-items:center; gap:.4em; font-size:11.5px; font-weight:700; color:var(--warning);
+}
+
+.opportunity-card-pills{ display:flex; flex-wrap:wrap; gap:.4em; }
+.opportunity-pill{
+  display:inline-flex; align-items:center; height:24px; padding:0 .6em;
+  border-radius:6px; font-size:11px; font-weight:600;
+  background:var(--surface-2); color:var(--text); box-shadow:inset 0 0 0 1px var(--border);
+}
+
+/* The pre-redesign inline summary line, kept intact for the S-04/HF-2 trust
+   strings -- shown compact and muted since the card above now carries the
+   same facts visually. */
+.opportunity-legacy-summary{ font-size:12px; color:var(--mute); margin:0; }
 
 .how-scored{
-  margin-top:var(--space-3); padding:var(--space-3) var(--space-4);
+  padding:var(--space-3) var(--space-4);
   background:var(--bg); border:1px solid var(--border); border-radius:8px;
 }
 .how-scored h4{ margin-top:0; }
-.how-scored p{ margin:.3em 0; font-size:13.5px; color:var(--text); }
+.how-scored p{ margin:.3em 0; font-size:13px; color:var(--text); }
 
-.raw-payload{ margin-top:var(--space-2); }
-.raw-payload pre{
+.opportunity-card-footer{
+  margin-top:auto; padding-top:var(--space-3); border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-2);
+}
+.opportunity-basis-dot{
+  display:inline-flex; align-items:center; gap:.4em; font-size:10.5px; font-weight:700;
+  color:var(--mute); text-transform:capitalize;
+}
+.opportunity-basis-dot::before{
+  content:""; width:9px; height:9px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--mute);
+}
+.opportunity-basis-dot--measured::before{ background:var(--accent); }
+.opportunity-basis-dot--curated::before{ background:var(--mute); }
+.opportunity-basis-dot--none::before{ background:transparent; }
+
+.raw-payload{ display:inline-flex; }
+.opportunity-prove-it{
+  display:inline-flex; align-items:center; gap:.4em; height:30px; padding:0 .8em;
+  border-radius:8px; font-size:12px; font-weight:700;
+  background:var(--accent-soft); color:var(--accent-hover);
+}
+.raw-payload-modal{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  padding:var(--space-4); background:rgba(8,12,17,.55);
+}
+.raw-payload-modal-panel{
+  width:100%; max-width:640px; max-height:80vh; overflow:auto;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:var(--space-4);
+}
+.raw-payload-modal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-2); font-weight:700; }
+.raw-payload-modal-panel pre{
   margin-top:var(--space-2); padding:var(--space-3); background:var(--surface-2);
   border-radius:8px; font-size:12px; max-height:280px; overflow:auto;
 }
+.raw-payload-modal-caption{ font-size:11px; color:var(--mute); margin-top:var(--space-3); }
 
 .opportunities-load-more{ margin-top:var(--space-2); }
 
