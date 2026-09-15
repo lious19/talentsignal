@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type DragEvent, type FormEvent } from "react";
 import { getStoredToken, getStoredRole } from "./auth";
 
 interface Candidate {
@@ -30,6 +30,10 @@ export function CandidatesScreen() {
   const [phone, setPhone] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Visual stub only (S-26 fix2) -- no backend, no parsing. The parser is a
+  // separate future story; this just shows Ali the intended drop-zone
+  // pattern ahead of the demo.
+  const [uploadToast, setUploadToast] = useState(false);
   const role = getStoredRole();
   const canManage = role !== null && CAN_MANAGE_ROLES.includes(role);
   // contactInfo only ever appears in the response for recruiter/admin — any
@@ -109,9 +113,48 @@ export function CandidatesScreen() {
     }
   }
 
+  function handleUploadDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setUploadToast(true);
+  }
+
+  function handleUploadClick() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/pdf";
+    input.onchange = () => setUploadToast(true);
+    input.click();
+  }
+
   return (
     <section aria-label="candidates">
       <h2>Candidates</h2>
+
+      {canManage && (
+        <div
+          className="resume-upload-zone"
+          aria-label="resume upload"
+          onClick={handleUploadClick}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={handleUploadDrop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") handleUploadClick();
+          }}
+        >
+          <p>Drop resume PDF or LinkedIn URL here</p>
+          <p className="resume-upload-zone-hint">or click to browse</p>
+        </div>
+      )}
+      {uploadToast && (
+        <p role="status" className="resume-upload-toast">
+          Coming soon — resume parsing not yet implemented.
+          <button type="button" onClick={() => setUploadToast(false)} aria-label="dismiss">
+            ✕
+          </button>
+        </p>
+      )}
 
       {canManage ? (
         <form onSubmit={handleSubmit} aria-label="create candidate">
