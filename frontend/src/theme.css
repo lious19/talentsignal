@@ -5,18 +5,22 @@
    file and its import in main.tsx to fully revert.
    ============================================================ */
 
+/* S-26 fix3: tokens re-pointed at the approved talentsignal-dashboard.html
+   mockup's palette (violet brand instead of indigo, warmer neutrals).
+   Token names are unchanged so no component/CSS selector needed to change --
+   only the values moved. */
 :root{
-  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#eceef2; --border:#e3e6ea;
-  --text:#14171f; --mute:#68707e;
-  --accent:#6366f1; --accent-hover:#4f46e5; --accent-soft:#eef2ff;
-  /* Secondary tech/cyberpunk highlight (cyan) -- used sparingly: half the
+  --bg:#e9edf1; --surface:#ffffff; --surface-2:#f4f6f9; --border:#dce1e8;
+  --text:#16202b; --mute:#556072;
+  --accent:#5a4be0; --accent-hover:#4535c9; --accent-soft:#efedfd;
+  /* Secondary tech/cyberpunk highlight (teal, was cyan) -- used sparingly: half the
      stat-tile icon badges, donut/legend accents that need to read as
      distinct from --accent, never as a co-primary button/link color. */
-  --accent-2:#06b6d4;
-  --success:#15803d; --warning:#b45309; --danger:#dc2626;
+  --accent-2:#0d9488;
+  --success:#1f8a54; --warning:#c67c12; --danger:#d8434a;
   --radius:10px;
-  --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
-  --shadow-hover:0 4px 12px rgba(16,24,40,.08), 0 2px 4px rgba(16,24,40,.06);
+  --shadow:0 1px 2px rgba(16,32,43,.06);
+  --shadow-hover:0 4px 12px rgba(16,32,43,.1), 0 2px 4px rgba(16,32,43,.06);
   /* Stat-tile-only inset top highlight -- a 1px inner border simulated via
      box-shadow (stacked with --shadow/--shadow-hover) since .stat-tile
      already uses its full border-width budget on a real border. */
@@ -24,17 +28,17 @@
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
 }
 
-/* Dark mode: color tokens only (bg/surface/border/text/mute/accent-soft),
-   toggled via TopBar's Sun/Moon button (theme.ts). Accent, radius, shadow,
-   and the spacing scale intentionally stay the same in both modes -- accent
-   indigo already reads fine against a dark surface. accent-soft is the one
-   exception: the light-mode value (#eef2ff, near-white) would be illegible
-   as an active-nav/icon-badge background on a dark surface, so it gets its
-   own dark-indigo-tinted value here instead. */
+/* Dark mode: color tokens, toggled via TopBar's Sun/Moon button (theme.ts).
+   Radius, shadow, and the spacing scale stay the same in both modes.
+   Accent/success/warning/danger get their own dark-mode values here (per
+   the mockup) since the light-mode violet/green/amber/red read too muddy
+   against a dark surface at the same saturation. */
 :root[data-theme="dark"]{
-  --bg:#0a0e1a; --surface:#131826; --surface-2:#212838; --border:#1f2735;
-  --text:#e6e9ef; --mute:#8b93a5;
-  --accent-soft:#1e1b4b;
+  --bg:#0d131a; --surface:#161f2a; --surface-2:#1c2836; --border:#263241;
+  --text:#e7ecf2; --mute:#9aa7b7;
+  --accent:#8b7dff; --accent-hover:#b6acff; --accent-soft:#241f47;
+  --accent-2:#2dd4bf;
+  --success:#4bc287; --warning:#e0a13d; --danger:#f0666c;
   --tile-inset-top:inset 0 1px 0 rgba(255,255,255,.04);
 }
 
@@ -44,7 +48,7 @@ html,body,#root{ height:100%; }
 
 body{
   margin:0;
-  font-family:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:"Archivo", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color:var(--text);
   background:var(--bg);
   min-height:100vh;
@@ -311,7 +315,7 @@ a:hover{ border-bottom-color:var(--accent); }
 }
 
 /* ---- code / mono ---- */
-code, pre, .mono{ font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+code, pre, .mono{ font-family:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
 code{ background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:.1em .4em; font-size:.9em; }
 pre{ background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1em; overflow:auto; }
 
