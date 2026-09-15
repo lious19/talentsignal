@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Briefcase,
+  Radio,
   Target,
   Building2,
   Users,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { OverviewScreen } from "./OverviewScreen";
 import { OpportunitiesList } from "./OpportunitiesList";
+import { SignalsScreen } from "./SignalsScreen";
 import { HardToFillTargeting } from "./HardToFillTargeting";
 import { LoginScreen } from "./LoginScreen";
 import { RegisterScreen } from "./RegisterScreen";
@@ -140,6 +142,7 @@ export function App() {
           {navBtn("overview", "Overview", LayoutDashboard)}
         </RoleGate>
         <RoleGate allow={["admin", "sales"]}>{navBtn("opportunities", "Opportunities", Briefcase)}</RoleGate>
+        <RoleGate allow={["admin", "sales"]}>{navBtn("signals", "Signals", Radio)}</RoleGate>
         <RoleGate allow={["admin", "sales"]}>{navBtn("targeting", "Targeting", Target)}</RoleGate>
         <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("clients", "Clients", Building2)}</RoleGate>
         <RoleGate allow={["admin", "sales", "recruiter"]}>{navBtn("candidates", "Candidates", Users)}</RoleGate>
@@ -174,6 +177,11 @@ export function App() {
                 <h2>Opportunities</h2>
                 <OpportunitiesList />
               </section>
+            </RoleGate>
+          </div>
+          <div hidden={view !== "signals"}>
+            <RoleGate allow={["admin", "sales"]}>
+              <SignalsScreen />
             </RoleGate>
           </div>
           <div hidden={view !== "targeting"}>
