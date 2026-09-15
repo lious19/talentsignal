@@ -9,11 +9,75 @@ interface ScoreFactor {
 interface Opportunity {
   id: string;
   company: string;
+  title: string;
   source: string;
   reasons: string[];
   hardToFillReasons?: string[];
   hardToFillFactors?: ScoreFactor[];
   familyKey?: string | null;
+  daysOpen?: number;
+}
+
+// Bug fix (S-26 signals hotfix): production's opportunities table is 100%
+// still hard-to-fill-026-v1 -- S-23's rescore/backfill (which stamps
+// family_key and roleScarcity's basis) was never run against it (verified
+// directly against the live API: every one of the 1049 rows has
+// familyKey: null and no basis key at all). Rather than show a dashboard
+// that's honestly-but-uselessly all-zero, this ports the exact same pure,
+// already-Ali-approved classification/scarcity logic backend/src/scoring/
+// hardToFillScore.ts and familyScarcity.ts already use (decision 046),
+// and runs it client-side against the real title/source/daysOpen fields
+// the API already returns -- a real derivation from real data, not an
+// invented number, and it prefers a row's own real familyKey/basis whenever
+// one is already present (e.g. once production is eventually rescored).
+const ROLE_FAMILIES: Record<string, string[]> = {
+  "engineering-swe": ["software engineer", "backend engineer", "frontend engineer", "full stack", "fullstack"],
+  "ml-ai": ["ai engineer", "ai architect", "machine learning", "ml engineer", "artificial intelligence", "ai"],
+  "data-analytics": ["data analyst", "data scientist", "data engineer", "data science"],
+  security: ["security", "cybersecurity"],
+  "cloud-infra": ["cloud architect", "cloud engineer", "infrastructure", "site reliability", "devops"],
+  "support-cs": ["support engineer", "customer success", "help desk", "desktop support", "solutions architect"],
+  "sales-bizdev": ["account executive", "business development", "sales"],
+  "retail-ops": ["store associate", "key holder", "store manager", "operations associate", "forklift", "warehouse"],
+};
+const ROLE_KEYWORDS = [
+  "data analyst",
+  "data scientist",
+  "ai architect",
+  "ai engineer",
+  "ml engineer",
+  "machine learning engineer",
+  "data engineer",
+  "cybersecurity",
+  "security engineer",
+  "cloud architect",
+];
+const FAMILY_OBSERVATION_THRESHOLD = 10;
+const MEASURED_ELIGIBLE_SOURCES = ["greenhouse"];
+
+function normalizeForMatch(text: string): string {
+  return ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+}
+function matchesAnyKeyword(title: string, keywords: string[]): boolean {
+  const normalized = normalizeForMatch(title);
+  return keywords.some((keyword) => normalized.includes(` ${normalizeForMatch(keyword).trim()} `));
+}
+function matchesScarceRole(title: string): boolean {
+  return matchesAnyKeyword(title, ROLE_KEYWORDS);
+}
+function classifyFamily(title: string): string {
+  const entries = Object.entries(ROLE_FAMILIES);
+  const isSpecific = (keyword: string) => keyword.trim().includes(" ");
+  for (const [familyKey, keywords] of entries) {
+    if (matchesAnyKeyword(title, keywords.filter(isSpecific))) return familyKey;
+  }
+  for (const [familyKey, keywords] of entries) {
+    if (matchesAnyKeyword(title, keywords.filter((k) => !isSpecific(k)))) return familyKey;
+  }
+  return "general-other";
+}
+function effectiveFamily(o: Opportunity): string {
+  return o.familyKey ?? classifyFamily(o.title);
 }
 
 type OpportunitiesState =
@@ -38,8 +102,10 @@ function extractDaysOpen(opportunity: Opportunity): number | undefined {
 }
 
 // roleScarcity is the only factor that ever carries a basis (S-23) -- real
-// field, not invented.
-function roleScarcityBasis(opportunity: Opportunity): string | undefined {
+// field when present. Every live row is currently pre-S-23 (v1), so this
+// always falls through to undefined today -- callers combine it with the
+// derived basis below rather than relying on it alone.
+function storedRoleScarcityBasis(opportunity: Opportunity): string | undefined {
   const factor = opportunity.hardToFillFactors?.find((f) => f.factor === "roleScarcity");
   return factor?.basis && factor.basis !== "n/a" ? factor.basis : undefined;
 }
@@ -48,17 +114,21 @@ interface SignalDef {
   name: string;
   field: string;
   test: (o: Opportunity, daysOpen: number | undefined) => boolean;
+  // Only the original four (real fields already on every row) feed the hero
+  // total -- measured/curated are derived (see effectiveBasis) and must not
+  // change the hero number this hotfix was told not to touch.
+  countsTowardHero: boolean;
 }
 
 // Mirrors the approved mockup's six signal cards -- each reads a real field,
 // no fabricated categories.
 const SIGNALS: SignalDef[] = [
-  { name: "Reposted roles", field: 'reasons include "reposted role"', test: (o) => o.reasons.some((r) => r.includes("reposted")) },
-  { name: "Long-open (≥54d)", field: "days_open ≥ 54", test: (_o, d) => d !== undefined && d >= 54 },
-  { name: "Very stale (≥365d)", field: "days_open ≥ 365", test: (_o, d) => d !== undefined && d >= 365 },
-  { name: "No salary range", field: 'reasons include "no salary range"', test: (o) => o.reasons.some((r) => r.includes("no salary range")) },
-  { name: "Measured role-scarcity", field: "basis = measured", test: (o) => roleScarcityBasis(o) === "measured" },
-  { name: "Curated role-scarcity", field: "basis = curated", test: (o) => roleScarcityBasis(o) === "curated" },
+  { name: "Reposted roles", field: 'reasons include "reposted role"', countsTowardHero: true, test: (o) => o.reasons.some((r) => r.includes("reposted")) },
+  { name: "Long-open (≥54d)", field: "days_open ≥ 54", countsTowardHero: true, test: (_o, d) => d !== undefined && d >= 54 },
+  { name: "Very stale (≥365d)", field: "days_open ≥ 365", countsTowardHero: true, test: (_o, d) => d !== undefined && d >= 365 },
+  { name: "No salary range", field: 'reasons include "no salary range"', countsTowardHero: true, test: (o) => o.reasons.some((r) => r.includes("no salary range")) },
+  { name: "Measured role-scarcity", field: "basis = measured", countsTowardHero: false, test: () => false },
+  { name: "Curated role-scarcity", field: "basis = curated", countsTowardHero: false, test: () => false },
 ];
 
 const FAMILY_PALETTE = ["var(--accent)", "var(--accent-2)", "#c02c86", "#c67c12", "#556072"];
@@ -117,15 +187,54 @@ export function SignalsScreen() {
   const n = opportunities.length;
   const daysOpenByOpp = new Map(opportunities.map((o) => [o.id, extractDaysOpen(o)]));
 
+  // Bug 1/2 fix: real per-family Greenhouse median, computed the same way
+  // familyScarcity.ts does on the backend (Greenhouse-only, general-other
+  // excluded, real daysOpen field) -- from the real data this API already
+  // returns, not a stored (currently-unpopulated) column.
+  const greenhouseDaysByFamily = new Map<string, number[]>();
+  for (const o of opportunities) {
+    if (o.source !== "greenhouse" || o.daysOpen === undefined) continue;
+    const family = effectiveFamily(o);
+    if (family === "general-other") continue;
+    if (!greenhouseDaysByFamily.has(family)) greenhouseDaysByFamily.set(family, []);
+    greenhouseDaysByFamily.get(family)?.push(o.daysOpen);
+  }
+  const measuredEligibleFamilies = new Set(
+    [...greenhouseDaysByFamily.entries()]
+      .filter(([, days]) => days.length >= FAMILY_OBSERVATION_THRESHOLD)
+      .map(([family]) => family),
+  );
+
+  // Prefers a row's own real, stored basis (once production is eventually
+  // rescored under S-23) before falling back to the same derivation
+  // hardToFillScore.ts's resolveRoleScarcity uses.
+  function effectiveBasis(o: Opportunity): "measured" | "curated" | "none" {
+    const stored = storedRoleScarcityBasis(o);
+    if (stored === "measured" || stored === "curated") return stored;
+    const family = effectiveFamily(o);
+    if (MEASURED_ELIGIBLE_SOURCES.includes(o.source) && measuredEligibleFamilies.has(family)) return "measured";
+    return matchesScarceRole(o.title) ? "curated" : "none";
+  }
+
+  const heroSignalCount = (sig: SignalDef) =>
+    opportunities.filter((o) => sig.test(o, daysOpenByOpp.get(o.id))).length;
+  const measuredCount = opportunities.filter((o) => effectiveBasis(o) === "measured").length;
+  const curatedCount = opportunities.filter((o) => effectiveBasis(o) === "curated").length;
   const signalCounts = SIGNALS.map((sig) => ({
     ...sig,
-    count: opportunities.filter((o) => sig.test(o, daysOpenByOpp.get(o.id))).length,
+    count:
+      sig.name === "Measured role-scarcity" ? measuredCount : sig.name === "Curated role-scarcity" ? curatedCount : heroSignalCount(sig),
   }));
-  const totalInstances = signalCounts.reduce((sum, s) => sum + s.count, 0);
+  // Hero total intentionally unchanged: sum of only the four signals that
+  // were already real fields before this hotfix (per the "do NOT touch the
+  // hero KPI" constraint) -- measured/curated are now real too, but adding
+  // them would move the hero number, so they're shown in their own tiles
+  // without feeding this sum.
+  const totalInstances = signalCounts.filter((s) => s.countsTowardHero).reduce((sum, s) => sum + s.count, 0);
 
   const families = new Map<string, number>();
   for (const o of opportunities) {
-    const key = o.familyKey ?? "unclassified";
+    const key = effectiveFamily(o);
     families.set(key, (families.get(key) ?? 0) + 1);
   }
   const familyEntries = [...families.entries()].sort((a, b) => b[1] - a[1]);
@@ -138,19 +247,24 @@ export function SignalsScreen() {
       if (!bySource.has(o.source)) bySource.set(o.source, []);
       bySource.get(o.source)?.push(daysOpen);
     }
-    if (roleScarcityBasis(o) === "measured") measuredSources.add(o.source);
+    if (effectiveBasis(o) === "measured") measuredSources.add(o.source);
   }
-  // Verdict is derived from real per-opportunity fields (source + basis),
-  // not hardcoded to specific company/source names: a source with at least
-  // one measured-basis row reads "healthy"; the seed fixture reads
-  // "fixture"; anything else (never contributes measured scarcity data)
-  // reads "flagged — excluded" (decision 046's real mechanism, generalized).
+  // Verdict: "healthy" for a source that's on decision 046's real, documented
+  // measured-eligible allowlist (today just Greenhouse) or that otherwise has
+  // at least one measured row; the seed fixture reads "fixture"; everything
+  // else (e.g. Lever, per decision 046's Lever-exclusion finding) reads
+  // "flagged — excluded". Not hardcoded to a company name -- the allowlist
+  // itself is the same one hardToFillConfig.ts declares.
   const sourceHealth = [...bySource.entries()].map(([source, days]) => ({
     source,
     count: days.length,
     medianDaysOpen: median(days),
     verdict:
-      source === "seed-job-board" ? "fixture" : measuredSources.has(source) ? "healthy" : "flagged — excluded",
+      source === "seed-job-board"
+        ? "fixture"
+        : MEASURED_ELIGIBLE_SOURCES.includes(source) || measuredSources.has(source)
+          ? "healthy"
+          : "flagged — excluded",
   }));
 
   const distinctCompanies = new Set(opportunities.map((o) => o.company)).size;
