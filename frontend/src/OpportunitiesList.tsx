@@ -451,9 +451,11 @@ function OpportunityCard({
 export function OpportunitiesList() {
   const [state, setState] = useState<OpportunitiesState>({ status: "loading" });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Total candidates KPI: a real count from the existing /api/candidates
-  // endpoint, best-effort only -- never blocks or errors the opportunities
-  // screen if it fails, and never shown as a guessed/sample number.
+  // Total clients / total candidates KPIs: real counts from the existing
+  // /api/clients and /api/candidates endpoints, best-effort only -- never
+  // block or error the opportunities screen if they fail, and never shown
+  // as a guessed/sample number.
+  const [clientCount, setClientCount] = useState<number | undefined>(undefined);
   const [candidateCount, setCandidateCount] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -495,6 +497,18 @@ export function OpportunitiesList() {
     const token = getStoredToken();
     if (!token) return;
 
+    fetch("/api/clients", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? (res.json() as Promise<{ clients?: unknown[] }>) : null))
+      .then((body) => {
+        if (!cancelled && body && Array.isArray(body.clients)) {
+          setClientCount(body.clients.length);
+        }
+      })
+      .catch(() => {
+        // Best-effort KPI only -- the opportunities screen must not fail
+        // because this secondary fetch did.
+      });
+
     fetch("/api/candidates", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => (res.ok ? (res.json() as Promise<{ candidates?: unknown[] }>) : null))
       .then((body) => {
@@ -528,7 +542,6 @@ export function OpportunitiesList() {
   const sortedOpportunities = sortOpportunities(allOpportunities);
   const visibleOpportunities = sortedOpportunities.slice(0, visibleCount);
   const topPickId = findTopPick(allOpportunities);
-  const totalClients = new Set(allOpportunities.map((o) => o.company)).size;
   const hardToFillCount = allOpportunities.filter((o) => o.hardToFill).length;
 
   return (
@@ -536,7 +549,7 @@ export function OpportunitiesList() {
       <div className="opportunity-kpi-strip">
         <KpiTile label="Total opportunities" value={allOpportunities.length} />
         <KpiTile label="Hard to fill" value={hardToFillCount} accent />
-        <KpiTile label="Total clients" value={totalClients} />
+        <KpiTile label="Total clients" value={clientCount} />
         <KpiTile label="Total candidates" value={candidateCount} />
       </div>
       <ul aria-label="opportunities" className="opportunities-grid">
